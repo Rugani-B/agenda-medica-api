@@ -75,6 +75,11 @@ header {
   font-weight: 700;
   letter-spacing: 0.01em;
 }
+.titulo-prefixo {
+  font-size: 0.82rem;
+  font-weight: 400;
+  opacity: 0.8;
+}
 .subtitulo {
   font-size: 0.82rem;
   opacity: 0.75;
