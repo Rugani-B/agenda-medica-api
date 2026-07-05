@@ -79,6 +79,7 @@ header {
   font-size: 0.82rem;
   opacity: 0.75;
   font-style: italic;
+  margin-left: 24px;
 }
 .btn-tema {
   margin-left: auto;
