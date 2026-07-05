@@ -570,7 +570,18 @@ def confirmar_consulta(consulta_id: int, token: str = Form(...), db: Session = D
     consulta = db.query(Consulta).filter_by(id=consulta_id).first()
     if not consulta or consulta.paciente_id != responsavel.paciente_id:
         raise HTTPException(status_code=404)
+    from datetime import datetime as dt
+    from app.models.confirmacao import Confirmacao, StatusConfirmacao
     consulta.status = StatusAgendamento.realizada
+    # Registra ou atualiza confirmação
+    conf = db.query(Confirmacao).filter_by(consulta_id=consulta_id).first()
+    if not conf:
+        conf = Confirmacao(consulta_id=consulta_id)
+        db.add(conf)
+    conf.status = StatusConfirmacao.realizada
+    conf.respondido_em = dt.utcnow()
+    conf.respondido = responsavel.nome
+    conf.canal = "web"
     db.commit()
     return RedirectResponse(url=f"/familia/?token={token}", status_code=303)
 
