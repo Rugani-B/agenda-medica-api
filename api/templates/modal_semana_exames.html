@@ -1,0 +1,65 @@
+<div class="modal-header modal-header-exame">
+  <span class="modal-titulo">🔬 Semana de {{ seg }} a {{ dom }}</span>
+  <button class="modal-fechar" onclick="fecharModal()">✕</button>
+</div>
+<div class="modal-body">
+
+{% if not exames %}
+  <p class="modal-vazio">Nenhum exame nesta semana.</p>
+{% endif %}
+
+{% for e in exames %}
+<div class="modal-consulta modal-exame-card">
+  <div class="modal-cons-header">
+    <span class="modal-esp modal-esp-exame">🔬 {{ e.tipo }}</span>
+    <span class="modal-badge modal-badge-{{ e.status }}">{{ e.status | capitalize }}</span>
+    <span class="modal-hora">{{ e.data }} · {{ e.hora }}</span>
+  </div>
+
+  <div class="modal-indentado">
+    {% if e.local %}
+    <div class="modal-detalhe-linha">
+      <span class="modal-detalhe-label">Local:</span> {{ e.local }}
+    </div>
+    {% endif %}
+    {% if e.medico %}
+    <div class="modal-detalhe-linha">
+      <span class="modal-detalhe-label">Médico:</span> Dr(a). {{ e.medico }}
+    </div>
+    {% endif %}
+    {% if e.observacoes %}
+    <div class="modal-obs">{{ e.observacoes }}</div>
+    {% endif %}
+  </div>
+
+  {% if e.resultado %}
+  <div class="modal-secao modal-indentado">
+    <div class="modal-secao-titulo">📄 Resultado</div>
+    <div class="modal-resultado">{{ e.resultado | safe }}</div>
+  </div>
+  {% endif %}
+
+  {% if e.anexos %}
+  <div class="modal-secao modal-indentado">
+    <div class="modal-secao-titulo">📎 Arquivos anexos</div>
+    <div class="modal-anexos">
+      {% for a in e.anexos %}
+      <a class="modal-anexo" href="/familia/anexo/{{ a.id }}?token={{ token }}" target="_blank" title="Abrir {{ a.nome }}">
+        <span class="modal-anexo-icone">
+          {% if a.ext == 'pdf' %}📕
+          {% elif a.ext in ['jpg','jpeg','png','gif','bmp'] %}🖼️
+          {% elif a.ext == 'txt' %}📝
+          {% else %}📎{% endif %}
+        </span>
+        <span class="modal-anexo-nome">{{ a.nome }}</span>
+        <span class="modal-anexo-ext">.{{ a.ext }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endfor %}
+
+</div>

@@ -1,0 +1,74 @@
+<div class="modal-header">
+  <span class="modal-titulo">📅 Semana de {{ seg }} a {{ dom }}</span>
+  <button class="modal-fechar" onclick="fecharModal()">✕</button>
+</div>
+<div class="modal-body">
+
+{% if not consultas %}
+  <p class="modal-vazio">Nenhuma consulta nesta semana.</p>
+{% endif %}
+
+{% for c in consultas %}
+<div class="modal-consulta">
+  <div class="modal-cons-header">
+    <span class="modal-esp">🏥 {{ c.especialidade or c.medico }}</span>
+    <span class="modal-badge modal-badge-{{ c.status }}">{{ c.status }}</span>
+    <span class="modal-hora">{{ c.data }} · {{ c.hora }}</span>
+  </div>
+  {% if c.medico and c.especialidade %}
+  <div class="modal-medico">Dr(a). {{ c.medico }}</div>
+  {% endif %}
+  {% if c.observacoes %}
+  <div class="modal-obs modal-indentado">{{ c.observacoes }}</div>
+  {% endif %}
+
+  {% if c.pedidos %}
+  <div class="modal-secao modal-indentado">
+    <div class="modal-secao-titulo">📋 Exames pedidos</div>
+    {% for p in c.pedidos %}
+    <div class="modal-item modal-item-e modal-indentado">
+      <span>{{ p.tipo }}</span>
+      {% if p.urgente %}<span class="modal-urgente">URGENTE</span>{% endif %}
+      <span class="modal-status-pedido">{{ p.status | capitalize }}:</span>
+      {% if p.observacoes %}<span class="modal-item-obs">{{ p.observacoes }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if c.prescricoes %}
+  <div class="modal-secao modal-indentado">
+    <div class="modal-secao-titulo">💊 Prescrições desta consulta</div>
+    {% for pr in c.prescricoes %}
+    <div class="modal-presc modal-indentado">
+      {% for item in pr.itens %}
+      <div class="modal-item modal-item-t">{{ item }}</div>
+      {% endfor %}
+      {% if pr.observacoes %}<div class="modal-item-obs">{{ pr.observacoes }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" action="/familia/consulta/{{ c.id }}/confirmar" style="margin-top:8px">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button type="submit" class="btn-acao btn-acao-sm">✔ Confirmar realização</button>
+  </form>
+</div>
+{% endfor %}
+
+{% if prescricoes_ativas %}
+<div class="modal-secao modal-secao-trat">
+  <div class="modal-secao-titulo">💊 Tratamentos ativos nesta semana</div>
+  {% for pr in prescricoes_ativas %}
+  <div class="modal-presc modal-indentado">
+    <div class="modal-presc-periodo">{{ pr.periodo }}{% if pr.medico %} · Dr(a). {{ pr.medico }}{% endif %}</div>
+    {% for item in pr.itens %}
+    <div class="modal-item modal-item-t">{{ item }}</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+</div>

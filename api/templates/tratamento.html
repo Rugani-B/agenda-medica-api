@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Tratamento — semana de {{ semana.strftime('%d/%m/%Y') }}</h2>
+
+{% if prescricoes %}
+  {% for p in prescricoes %}
+  <div class="card">
+    <div class="card-info"><strong>Prescrição #{{ p.id }}</strong>
+      {% if p.medico %} — {{ p.medico.nome }}{% endif %}
+    </div>
+    <ul class="medicamentos">
+      {% for item in p.itens %}
+      <li>
+        <strong>{{ item.medicamento.nome }}</strong>
+        {% if item.dose %} · {{ item.dose }}{% endif %}
+        {% if item.frequencia %} · {{ item.frequencia }}{% endif %}
+        {% if item.duracao %} · {{ item.duracao }}{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+
+    {% set adesao = adesoes_semana.get(p.id) %}
+    {% if adesao %}
+      <div class="adesao-registrada">
+        ✓ Adesão registrada: <strong>{{ adesao.nivel.value }}</strong>
+        {% if adesao.observacoes %} — {{ adesao.observacoes }}{% endif %}
+      </div>
+    {% else %}
+      <form method="post" action="/familia/adesao/{{ p.id }}/registrar">
+        <input type="hidden" name="token" value="{{ token }}">
+        <label>Como foi a adesão esta semana?</label>
+        <div class="niveis">
+          {% for n in niveis %}
+          <label class="nivel-label">
+            <input type="radio" name="nivel" value="{{ n.value }}" required>
+            {{ n.value|capitalize }}
+          </label>
+          {% endfor %}
+        </div>
+        <textarea name="observacoes" placeholder="Observações (opcional)" rows="2"></textarea>
+        <button type="submit" class="btn-confirmar">Registrar adesão</button>
+      </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="vazio">Nenhum tratamento ativo esta semana.</p>
+{% endif %}
+{% endblock %}

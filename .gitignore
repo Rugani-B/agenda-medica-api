@@ -1,0 +1,32 @@
+# Ambientes virtuais
+venv/
+env_paulo/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Variáveis de ambiente
+.env
+.env.local
+
+# Alembic (tem config sensível)
+alembic.ini
+
+# Dados locais
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# Windows
+desktop.ini
+Thumbs.db

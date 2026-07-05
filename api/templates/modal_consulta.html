@@ -1,0 +1,54 @@
+<div class="modal-header">
+  <span class="modal-titulo">🏥 Consulta — {{ consulta.data }} · {{ consulta.hora }}</span>
+  <button class="modal-fechar" onclick="fecharModal()">✕</button>
+</div>
+<div class="modal-body">
+
+<div class="modal-consulta">
+  <div class="modal-cons-header">
+    <span class="modal-esp">🏥 {{ consulta.especialidade or consulta.medico }}</span>
+    <span class="modal-badge modal-badge-{{ consulta.status }}">{{ consulta.status }}</span>
+    <span class="modal-hora">{{ consulta.data }} · {{ consulta.hora }}</span>
+  </div>
+  {% if consulta.medico and consulta.especialidade %}
+  <div class="modal-medico">Dr(a). {{ consulta.medico }}</div>
+  {% endif %}
+  {% if consulta.observacoes %}
+  <div class="modal-obs modal-indentado">{{ consulta.observacoes }}</div>
+  {% endif %}
+
+  {% if consulta.pedidos %}
+  <div class="modal-secao modal-indentado">
+    <div class="modal-secao-titulo">📋 Exames pedidos</div>
+    {% for p in consulta.pedidos %}
+    <div class="modal-item modal-item-e modal-indentado">
+      <span>{{ p.tipo }}</span>
+      {% if p.urgente %}<span class="modal-urgente">URGENTE</span>{% endif %}
+      <span class="modal-status-pedido">{{ p.status | capitalize }}:</span>
+      {% if p.observacoes %}<span class="modal-item-obs">{{ p.observacoes }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if consulta.prescricoes %}
+  <div class="modal-secao modal-indentado">
+    <div class="modal-secao-titulo">💊 Prescrições desta consulta</div>
+    {% for pr in consulta.prescricoes %}
+    <div class="modal-presc modal-indentado">
+      {% for item in pr.itens %}
+      <div class="modal-item modal-item-t">{{ item }}</div>
+      {% endfor %}
+      {% if pr.observacoes %}<div class="modal-item-obs">{{ pr.observacoes }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" action="/familia/consulta/{{ consulta.id }}/confirmar" style="margin-top:8px">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button type="submit" class="btn-acao btn-acao-sm">✔ Confirmar realização</button>
+  </form>
+</div>
+
+</div>

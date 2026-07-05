@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda — {{ paciente.nome }}</title>
+  <link rel="stylesheet" href="/static/style.css?v={{ cache_bust }}">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <span class="titulo">🏥 Agenda de {{ paciente.nome }}</span>
+    <span class="subtitulo">Olá, {{ responsavel.nome }}</span>
+    <button class="btn-tema" id="btnTema" onclick="toggleTema()" title="Alternar tema">🎨</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ═══════════════ METADE ESQUERDA ═══════════════ -->
+  <div class="painel-esq">
+
+    <!-- Resumo da semana -->
+    <div class="resumo-bar">
+      <div class="resumo-titulo">Esta semana:</div>
+      <div class="resumo-secoes">
+
+        <div class="resumo-secao resumo-secao-c">
+          <div class="resumo-secao-header">🏥 {{ resumo.consultas }} consulta{{ 's' if resumo.consultas != 1 else '' }}</div>
+          {% if resumo.lista_consultas %}
+          <ul class="resumo-lista">
+            {% for c in resumo.lista_consultas %}
+            <li><span class="resumo-data">{{ c.data }}</span> · {{ c.especialidade or c.medico }} <span class="resumo-status">{{ c.status }}</span></li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="resumo-vazio">Nenhuma consulta</div>
+          {% endif %}
+        </div>
+
+        <div class="resumo-secao resumo-secao-e">
+          <div class="resumo-secao-header">🔬 {{ resumo.exames }} exame{{ 's' if resumo.exames != 1 else '' }}</div>
+          {% if resumo.lista_exames %}
+          <ul class="resumo-lista">
+            {% for e in resumo.lista_exames %}
+            <li><span class="resumo-data">{{ e.data }}</span> · {{ e.tipo }}{% if e.local %} — {{ e.local }}{% endif %} <span class="resumo-status">{{ e.status }}</span></li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="resumo-vazio">Nenhum exame</div>
+          {% endif %}
+        </div>
+
+        <div class="resumo-secao resumo-secao-t">
+          <div class="resumo-secao-header">💊 {{ resumo.tratamentos_ativos }} tratamento{{ 's' if resumo.tratamentos_ativos != 1 else '' }}</div>
+          {% if resumo.lista_tratamentos %}
+          <ul class="resumo-lista">
+            {% for t in resumo.lista_tratamentos %}
+            {% for m in t.medicamentos %}
+            <li>{{ m }}</li>
+            {% endfor %}
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="resumo-vazio">Nenhum tratamento ativo</div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Navegação do mês -->
+    <div class="cal-nav">
+      <a href="/familia/?token={{ token }}&ano={{ ano_ant }}&mes={{ mes_ant }}" class="cal-nav-btn">◀</a>
+      <span class="cal-mes-titulo">{{ mes_nome }} {{ ano }}</span>
+      <a href="/familia/?token={{ token }}&ano={{ ano_prox }}&mes={{ mes_prox }}" class="cal-nav-btn">▶</a>
+    </div>
+
+    <!-- Calendário mensal -->
+    <table class="calendario">
+      <thead>
+        <tr><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th></tr>
+      </thead>
+      <tbody>
+        {% for semana in cal %}
+        <tr>
+          {% for dia in semana %}
+          {% if dia == 0 %}
+            <td class="cal-vazio"></td>
+          {% else %}
+            {% set dia_str = "%04d-%02d-%02d"|format(ano, mes, dia) %}
+            <td class="cal-dia {% if dia_str == hoje %}cal-hoje{% endif %}"
+                data-dia="{{ dia_str }}" onclick="mostrarDia('{{ dia_str }}')">
+              <div class="cal-num">{{ dia }}{% if dia_str == hoje %} <span class="hoje-label">hoje</span>{% endif %}</div>
+              <div class="cal-dots" id="dots-{{ dia_str }}"></div>
+            </td>
+          {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Detalhes do dia -->
+    <div class="detalhes" id="detalhes">
+      <p class="detalhes-vazio">Clique em um dia para ver os detalhes.</p>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════ METADE DIREITA ═══════════════ -->
+  <div class="painel-dir">
+    <div class="painel-dir-toolbar">
+      <button class="modo-btn-unico" id="btn-modo-global" onclick="toggleModoGlobal()">📅 Calendário</button>
+    </div>
+
+    <!-- Calendário anual: Consultas -->
+    <div class="anual-bloco">
+      <h3 class="anual-titulo anual-titulo-consulta">🏥 Consultas — {{ ano }}</h3>
+      <div id="view-cal-c" style="display:none">
+        <div class="anual-scroll" id="scroll-consultas">
+          <table class="anual-table" id="table-consultas"></table>
+        </div>
+      </div>
+      <div id="view-lst-c">
+        <div class="lista-view" id="lista-consultas"></div>
+      </div>
+    </div>
+
+    <!-- Calendário anual: Exames -->
+    <div class="anual-bloco">
+      <h3 class="anual-titulo anual-titulo-exame">🔬 Exames — {{ ano }}</h3>
+      <div id="view-cal-e" style="display:none">
+        <div class="anual-scroll" id="scroll-exames">
+          <table class="anual-table" id="table-exames"></table>
+        </div>
+      </div>
+      <div id="view-lst-e">
+        <div class="lista-view" id="lista-exames"></div>
+      </div>
+    </div>
+
+    <!-- Calendário anual: Tratamentos -->
+    <div class="anual-bloco">
+      <h3 class="anual-titulo anual-titulo-trat">💊 Tratamentos — {{ ano }}</h3>
+      <div id="view-cal-t" style="display:none">
+        <div class="anual-scroll" id="scroll-tratamentos">
+          <table class="anual-table" id="table-tratamentos"></table>
+        </div>
+        <div class="trat-detalhe" id="trat-detalhe" style="display:none"></div>
+      </div>
+      <div id="view-lst-t">
+        <div class="lista-view lista-view-trat" id="lista-tratamentos"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal semana -->
+<div class="modal-overlay" id="modal-overlay" onclick="fecharModal()" style="display:none"></div>
+<div class="modal-box" id="modal-box" style="display:none"></div>
+
+<script>
+const EVENTOS = {{ eventos_json|safe }};
+const ANUAL   = {{ anual_json|safe }};
+const TOKEN   = "{{ token }}";
+const HOJE    = "{{ hoje }}";
+
+// ── Eventos no calendário mensal ──
+Object.entries(EVENTOS).forEach(([dia, ev]) => {
+  const el = document.getElementById("dots-" + dia);
+  if (!el) return;
+  ev.consultas.forEach(c => {
+    const nome = c.especialidade || c.medico || "Consulta";
+    el.innerHTML += `<div class="cal-evento cal-evento-c">${nome}</div>`;
+  });
+  ev.exames.forEach(e => {
+    const nome = e.tipo || "Exame";
+    el.innerHTML += `<div class="cal-evento cal-evento-e">${nome}</div>`;
+  });
+});
+
+// ── Detalhes do dia ──
+function mostrarDia(dia) {
+  document.querySelectorAll(".cal-dia").forEach(e => e.classList.remove("cal-sel"));
+  const cel = document.querySelector(`[data-dia="${dia}"]`);
+  if (cel) cel.classList.add("cal-sel");
+
+  const ev = EVENTOS[dia] || {consultas:[], exames:[], tratamentos:[]};
+  const [a,m,d] = dia.split("-");
+  const nomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const dt = new Date(a, m-1, d);
+  let html = `<h4 class="det-titulo">${nomes[dt.getDay()]} ${d}/${m}/${a}</h4>`;
+
+  if (!ev.consultas.length && !ev.exames.length && !ev.tratamentos.length)
+    html += `<p class="detalhes-vazio">Nenhum evento neste dia.</p>`;
+
+  ev.consultas.forEach(c => {
+    html += `<div class="det-card det-c">
+      <div class="det-header">🏥 <strong>${c.especialidade || c.medico}</strong>
+        <span class="badge" style="background:${statusCor(c.status)}">${c.status}</span>
+        <span class="det-hora">${c.hora}</span>
+      </div>
+      <div class="det-linha">Médico: ${c.medico}</div>
+      ${c.observacoes ? `<div class="det-obs">${c.observacoes}</div>` : ''}
+      ${!['realizada','cancelada'].includes(c.status) ? `
+      <form method="post" action="/familia/consulta/${c.id}/confirmar">
+        <input type="hidden" name="token" value="${TOKEN}">
+        <button class="btn-acao">✓ Confirmar realização</button>
+      </form>` : ''}
+    </div>`;
+  });
+
+  ev.exames.forEach(e => {
+    html += `<div class="det-card det-e">
+      <div class="det-header">🔬 <strong>${e.tipo}</strong>
+        <span class="badge" style="background:${statusCor(e.status)}">${e.status}</span>
+        <span class="det-hora">${e.hora}</span>
+      </div>
+      ${e.local ? `<div class="det-linha">Local: ${e.local}</div>` : ''}
+      ${e.resultado ? `<div class="det-linha">Resultado: ${e.resultado}</div>` : ''}
+    </div>`;
+  });
+
+  ev.tratamentos.forEach(t => {
+    const s = t.semana_seg.slice(8)+"/"+t.semana_seg.slice(5,7);
+    const d2 = t.semana_dom.slice(8)+"/"+t.semana_dom.slice(5,7);
+    const adHtml = t.adesao
+      ? `<div class="adesao-ok">✓ Adesão: <strong>${t.adesao}</strong></div>`
+      : `<div class="adesao-pend">⚠ Adesão não registrada</div>
+         <form method="post" action="/familia/adesao/${t.prescricao_id}/registrar">
+           <input type="hidden" name="token" value="${TOKEN}">
+           <div class="niveis-inline">
+             ${["nenhuma","baixa","parcial","boa","total"].map(n =>
+               `<label><input type="radio" name="nivel" value="${n}" required>${n}</label>`
+             ).join("")}
+           </div>
+           <button class="btn-acao">Registrar</button>
+         </form>`;
+    html += `<div class="det-card det-t">
+      <div class="det-header">💊 <strong>Tratamento</strong>
+        <span class="det-hora">sem. ${s}–${d2}</span>
+      </div>
+      <ul class="det-meds">${t.medicamentos.map(m=>`<li>${m}</li>`).join("")}</ul>
+      ${adHtml}
+    </div>`;
+  });
+
+  document.getElementById("detalhes").innerHTML = html;
+}
+
+function statusCor(s) {
+  return {agendada:"#2c7be5",confirmada:"#27ae60",realizada:"#27ae60",
+    cancelada:"#e74c3c",reagendada:"#e67e22",agendado:"#2c7be5",
+    realizado:"#27ae60",cancelado:"#e74c3c",a_marcar:"#aaa"}[s] || "#aaa";
+}
+
+// ── Calendários anuais (meses=colunas, semanas=linhas) ──
+function buildAnual(tableId, data, classe, comModal=false) {
+  const {meses, max_semanas} = data;
+  const table = document.getElementById(tableId);
+
+  // Cabeçalho: nomes dos meses
+  const thead = document.createElement("thead");
+  const trMes = document.createElement("tr");
+  meses.forEach(m => {
+    const th = document.createElement("th");
+    th.className = "anual-mes-header " + classe;
+    th.textContent = m.nome;
+    trMes.appendChild(th);
+  });
+  thead.appendChild(trMes);
+  table.appendChild(thead);
+
+  // Corpo: uma linha por posição de semana (máx 5)
+  const tbody = document.createElement("tbody");
+  for (let row = 0; row < max_semanas; row++) {
+    const tr = document.createElement("tr");
+    meses.forEach(m => {
+      const td = document.createElement("td");
+      const s = m.semanas[row];
+      if (s) {
+        const isCurrent = s.seg === SEG_ATUAL;
+        td.className = "anual-cell "
+          + (s.conteudo.length ? "anual-cell-ativo " + classe : "")
+          + (isCurrent ? " anual-sem-atual" : "");
+        td.dataset.seg = s.seg;
+        td.title = s.conteudo.join("\n") || "";
+        td.innerHTML =
+          `<div class="anual-cell-hdr"><strong>Sem. ${s.label_num}</strong> ${s.label_data}</div>` +
+          s.conteudo.map(c =>
+            `<div class="anual-item">▸ ${c.length > 18 ? c.slice(0,17)+"…" : c}</div>`
+          ).join("");
+        if (comModal && s.conteudo.length) {
+          td.style.cursor = "pointer";
+          td.title = "Duplo clique para ver detalhes";
+          td.addEventListener("dblclick", () => comModal(s.seg));
+        }
+      } else {
+        td.className = "anual-cell anual-cell-empty";
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+}
+
+// Calcula segunda-feira da semana atual
+function segundaFeira(d) {
+  const [a, m, dia] = d.split("-").map(Number);
+  const dt = new Date(a, m - 1, dia); // local time, evita bug de fuso horário
+  const day = dt.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  dt.setDate(dt.getDate() + diff);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+const SEG_ATUAL = segundaFeira(HOJE);
+
+function buildAnualTrat(tableId, data) {
+  const {meses, max_semanas} = data;
+  const table = document.getElementById(tableId);
+
+  const thead = document.createElement("thead");
+  const trMes = document.createElement("tr");
+  meses.forEach(m => {
+    const th = document.createElement("th");
+    th.className = "anual-mes-header cls-t";
+    th.textContent = m.nome;
+    trMes.appendChild(th);
+  });
+  thead.appendChild(trMes);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  for (let row = 0; row < max_semanas; row++) {
+    const tr = document.createElement("tr");
+    meses.forEach(m => {
+      const td = document.createElement("td");
+      const s = m.semanas[row];
+      if (s) {
+        const c = s.conteudo;
+        const temDados = c.prescricoes && c.prescricoes.length > 0;
+        const isCurrent = s.seg === SEG_ATUAL;
+        const semRegistro = temDados && c.prescricoes.every(p => !p.nivel);
+
+        td.className = "anual-cell "
+          + (temDados ? "anual-cell-ativo cls-t" : "")
+          + (isCurrent ? " anual-sem-atual" : "")
+          + (semRegistro ? " trat-sem-registro" : "");
+        td.dataset.seg = s.seg;
+        td.dataset.trat = JSON.stringify(s);
+
+        let html = `<div class="anual-cell-hdr"><strong>Sem. ${s.label_num}</strong> ${s.label_data}</div>`;
+
+        if (temDados) {
+          html += `<div class="trat-nmeds">${c.n_meds} medicamento${c.n_meds !== 1 ? 's' : ''}</div>`;
+
+          // Barra de adesão agregada
+          const comNivel = c.prescricoes.filter(p => p.nivel);
+          if (comNivel.length > 0) {
+            const pctMedio = Math.round(comNivel.reduce((s,p) => s + p.pct, 0) / comNivel.length);
+            const cor = comNivel[comNivel.length-1].cor;
+            html += `<div class="trat-barra-outer"><div class="trat-barra-inner" style="width:${pctMedio}%;background:${cor}"></div></div>
+                     <div class="trat-nivel-label" style="color:${cor}">Adesão ${pctMedio}%</div>`;
+          } else {
+            html += `<div class="trat-barra-outer"><div class="trat-barra-inner" style="width:0%"></div></div>
+                     <div class="trat-nivel-label" style="color:#ccc">não registrado</div>`;
+          }
+        }
+
+        td.innerHTML = html;
+        if (temDados) {
+          td.style.cursor = "pointer";
+          td.style.color = "#5a2d00";
+          td.addEventListener("click", () => abrirDetalheTrat(s, td));
+        }
+      } else {
+        td.className = "anual-cell anual-cell-empty";
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+}
+
+function abrirDetalheTrat(s, tdClicado) {
+  document.querySelectorAll(".anual-cell").forEach(e => e.classList.remove("trat-selecionado"));
+  tdClicado.classList.add("trat-selecionado");
+
+  const painel = document.getElementById("trat-detalhe");
+  const c = s.conteudo;
+  if (!c.prescricoes || !c.prescricoes.length) { painel.style.display = "none"; return; }
+
+  let html = `<div class="trat-det-titulo">Semana ${s.label_num} — ${s.label_data}
+    <button onclick="document.getElementById('trat-detalhe').style.display='none'" class="trat-det-fechar">✕</button>
+  </div>`;
+
+  c.prescricoes.filter(p => p.medicamentos && p.medicamentos.length > 0).forEach(p => {
+    const nivelLabel = p.nivel ? `Adesão ${p.pct}%` : "não registrado";
+    const cor = p.cor || "#ccc";
+    const pct = p.pct || 0;
+    html += `<div class="trat-det-presc">
+      <div class="trat-det-meds">${p.medicamentos.map(m => `<span>💊 ${m}</span>`).join("")}</div>
+      <div class="trat-det-row">
+        <span class="trat-nivel-label" style="color:${cor}">▸ ${nivelLabel}</span>
+        <form method="post" action="/familia/adesao/${p.id}/registrar" class="trat-det-form">
+          <input type="hidden" name="token" value="${TOKEN}">
+          <input type="hidden" name="semana_override" value="${s.seg}">
+          <select name="nivel" class="trat-select">
+            ${["nenhuma","baixa","parcial","boa","total"].map(n =>
+              `<option value="${n}" ${n === p.nivel ? 'selected' : ''}>${n}</option>`
+            ).join("")}
+          </select>
+          <button type="submit" class="btn-acao">Salvar</button>
+        </form>
+      </div>
+    </div>`;
+  });
+
+  painel.innerHTML = html;
+  painel.style.display = "block";
+  setTimeout(() => painel.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+}
+
+// ── Listas ──
+const LISTA_C = ANUAL.lista_consultas || [];
+const LISTA_E = ANUAL.lista_exames    || [];
+
+function statusCor2(s) { return statusCor(s); }
+
+function buildLista(containerId, itens, tipo) {
+  const el = document.getElementById(containerId);
+  if (!itens.length) { el.innerHTML = '<p class="lista-vazia">Nenhum registro encontrado.</p>'; return; }
+  el.innerHTML = itens.map(item => {
+    const cor = statusCor(item.status);
+    if (tipo === 'c') {
+      return `<div class="lista-item lista-item-c" onclick="abrirModal('/familia/consulta/${item.id}/detalhe?token=${TOKEN}')">
+        <span class="lista-data">${item.data}</span>
+        <span class="lista-status" style="color:${cor}">${item.status}</span>
+        <span class="lista-nome">${item.especialidade || item.medico || 'Consulta'}</span>
+        <span class="lista-medico">${item.medico && item.especialidade ? 'Dr(a). '+item.medico : ''}</span>
+      </div>`;
+    } else {
+      return `<div class="lista-item lista-item-e" onclick="abrirModal('/familia/semana-exames/${item.seg}?token=${TOKEN}')">
+        <span class="lista-data">${item.data}</span>
+        <span class="lista-status" style="color:${cor}">${item.status}</span>
+        <span class="lista-nome">${item.tipo}</span>
+        <span class="lista-medico">${item.local || ''}</span>
+      </div>`;
+    }
+  }).join('');
+}
+
+buildLista('lista-consultas', LISTA_C, 'c');
+buildLista('lista-exames',    LISTA_E, 'e');
+
+// ── Lista de tratamentos ──
+const LISTA_T = ANUAL.lista_tratamentos || [];
+(function buildListaTrat() {
+  const el = document.getElementById('lista-tratamentos');
+  if (!LISTA_T.length) { el.innerHTML = '<p class="lista-vazia">Nenhuma prescrição encontrada.</p>'; return; }
+  el.innerHTML = LISTA_T.map(p => {
+    const tagAtiva = p.status_trat === 'ativa'
+      ? `<span class="trat-tag trat-tag-ativa">ativa</span>`
+      : p.status_trat === 'futura'
+      ? `<span class="trat-tag trat-tag-fut">a iniciar</span>`
+      : `<span class="trat-tag trat-tag-enc">encerrada</span>`;
+    const meds = p.medicamentos.map(m => `<div class="lst-trat-med">💊 ${m}</div>`).join('');
+
+    let adesaoHtml;
+    if (!p.ativa) {
+      adesaoHtml = '';
+    } else if (p.adesao_atual) {
+      const barra = `<div class="trat-barra-outer" style="width:80px;display:inline-block;vertical-align:middle">
+        <div class="trat-barra-inner" style="width:${p.adesao_pct}%;background:${p.adesao_cor}"></div></div>
+        <span class="trat-nivel-label" style="color:${p.adesao_cor};filter:none">Adesão ${p.adesao_pct}%</span>`;
+      adesaoHtml = `<div class="lst-trat-adesao">
+        ${barra}
+        <form method="post" action="/familia/adesao/${p.id}/registrar" class="trat-det-form">
+          <input type="hidden" name="token" value="${TOKEN}">
+          <input type="hidden" name="semana_override" value="${p.seg_atual}">
+          <select name="nivel" class="trat-select">
+            ${["nenhuma","baixa","parcial","boa","total"].map(n =>
+              `<option value="${n}" ${n===p.adesao_atual?'selected':''}>${n}</option>`
+            ).join('')}
+          </select>
+          <button type="submit" class="btn-acao btn-acao-sm">Salvar</button>
+        </form>
+      </div>`;
+    } else {
+      adesaoHtml = `<div class="lst-trat-adesao lst-trat-pend">
+        <span>⚠ Semana atual sem registro</span>
+        <form method="post" action="/familia/adesao/${p.id}/registrar" class="trat-det-form">
+          <input type="hidden" name="token" value="${TOKEN}">
+          <input type="hidden" name="semana_override" value="${p.seg_atual}">
+          <select name="nivel" class="trat-select">
+            ${["nenhuma","baixa","parcial","boa","total"].map(n =>
+              `<option value="${n}">${n}</option>`
+            ).join('')}
+          </select>
+          <button type="submit" class="btn-acao btn-acao-sm">Salvar</button>
+        </form>
+      </div>`;
+    }
+
+    return `<div class="lst-trat-card">
+      <div class="lst-trat-header">
+        <span class="lst-trat-medico">${p.medico ? 'Dr(a). '+p.medico : 'Médico n/i'}</span>
+        ${tagAtiva}
+        <span class="lst-trat-periodo">${p.periodo}</span>
+      </div>
+      <div class="lst-trat-meds">${meds}</div>
+      ${adesaoHtml}
+    </div>`;
+  }).join('');
+})();
+
+function toggleModoGlobal() {
+  const btn = document.getElementById('btn-modo-global');
+  const emLista = document.getElementById('view-lst-c').style.display !== 'none';
+  ['c','e','t'].forEach(b => {
+    document.getElementById(`view-cal-${b}`).style.display = emLista ? '' : 'none';
+    document.getElementById(`view-lst-${b}`).style.display = emLista ? 'none' : '';
+  });
+  btn.textContent = emLista ? '📋 Lista' : '📅 Calendário';
+}
+
+buildAnual("table-consultas", ANUAL.consultas, "cls-c", seg => abrirModal(`/familia/semana/${seg}?token=${TOKEN}`));
+buildAnual("table-exames",    ANUAL.exames,    "cls-e", seg => abrirModal(`/familia/semana-exames/${seg}?token=${TOKEN}`));
+buildAnualTrat("table-tratamentos", ANUAL.tratamentos);
+
+function abrirModal(url) {
+  const overlay = document.getElementById("modal-overlay");
+  const box = document.getElementById("modal-box");
+  box.innerHTML = '<div class="modal-loading">Carregando...</div>';
+  overlay.style.display = "block";
+  box.style.display = "block";
+  fetch(url)
+    .then(r => r.arrayBuffer())
+    .then(buf => { box.innerHTML = new TextDecoder("utf-8").decode(buf); })
+    .catch(() => { box.innerHTML = '<div class="modal-loading">Erro ao carregar.</div>'; });
+}
+
+function abrirModalSemana(seg) {
+  abrirModal(`/familia/semana/${seg}?token=${TOKEN}`);
+}
+
+function fecharModal() {
+  document.getElementById("modal-overlay").style.display = "none";
+  document.getElementById("modal-box").style.display = "none";
+}
+
+// Centraliza na semana atual
+function centralizarSemanaAtual(scrollId) {
+  const container = document.getElementById(scrollId);
+  const cel = container.querySelector(`[data-seg="${SEG_ATUAL}"]`);
+  if (!cel) return;
+  const containerWidth = container.clientWidth;
+  const celLeft = cel.offsetLeft;
+  const celWidth = cel.offsetWidth;
+  container.scrollLeft = celLeft - containerWidth / 2 + celWidth / 2;
+}
+
+// Dblclick em qualquer calendário anual centraliza na semana atual
+["scroll-consultas","scroll-exames","scroll-tratamentos"].forEach(id => {
+  document.getElementById(id).addEventListener("dblclick", () => centralizarSemanaAtual(id));
+});
+
+// Scroll automático para o mês atual em cada calendário anual
+function scrollParaHoje(scrollId) {
+  const mesAtual = HOJE.slice(0, 7); // "2026-06"
+  // encontra a primeira célula cujo data-seg começa com o mês atual
+  // não há data-seg aqui, mas podemos estimar a posição pela proporção do mês
+  const mesNum = parseInt(HOJE.slice(5, 7));
+  const scroll = document.getElementById(scrollId);
+  const larguraTotal = scroll.scrollWidth;
+  scroll.scrollLeft = (larguraTotal / 12) * (mesNum - 2);
+}
+scrollParaHoje("scroll-consultas");
+scrollParaHoje("scroll-exames");
+scrollParaHoje("scroll-tratamentos");
+
+// Abre hoje automaticamente
+if (EVENTOS[HOJE]) mostrarDia(HOJE);
+
+// Tema
+function toggleTema() {
+  const cinza = document.body.classList.toggle('tema-cinza');
+  localStorage.setItem('tema', cinza ? 'cinza' : 'padrao');
+  document.getElementById('btnTema').textContent = cinza ? '🌈' : '🎨';
+}
+(function() {
+  if (localStorage.getItem('tema') === 'cinza') {
+    document.body.classList.add('tema-cinza');
+    document.getElementById('btnTema').textContent = '🌈';
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Semana de {{ semana_seg.strftime('%d/%m') }} a {{ semana_dom.strftime('%d/%m/%Y') }}</h2>
+
+{% if consultas %}
+  <div class="cards">
+    {% for c in consultas %}
+    <div class="card {% if c.status.value == 'realizada' %}card-realizada{% endif %}">
+      <div class="card-data">{{ c.data_hora.strftime('%a %d/%m %H:%M') }}</div>
+      <div class="card-info">
+        {% if c.medico %}{{ c.medico.nome }}{% else %}Médico não informado{% endif %}
+      </div>
+      <div class="card-status">Status: <strong>{{ c.status.value }}</strong></div>
+      {% if c.observacoes %}
+        <div class="card-obs">{{ c.observacoes }}</div>
+      {% endif %}
+      {% if c.status.value not in ['realizada', 'cancelada'] %}
+      <form method="post" action="/familia/consulta/{{ c.id }}/confirmar">
+        <input type="hidden" name="token" value="{{ token }}">
+        <button type="submit" class="btn-confirmar">✓ Confirmar realização</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="vazio">Nenhuma consulta esta semana.</p>
+{% endif %}
+{% endblock %}
