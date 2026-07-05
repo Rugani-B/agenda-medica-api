@@ -472,6 +472,7 @@ header {
 .trat-tag-fut   { background: #e3f2fd; color: #1565c0; }
 .lst-trat-meds  { margin-bottom: 6px; }
 .lst-trat-med   { font-size: 0.75rem; color: #5a2d00; padding: 1px 0; }
+.lst-trat-graf  { height: 90px; margin: 6px 0; }
 .lst-trat-adesao {
   display: flex;
   align-items: center;

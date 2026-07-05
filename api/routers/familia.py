@@ -244,6 +244,15 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
     hoje = date.today()
     seg_atual = _segunda(hoje)
 
+    # histórico completo de adesões por prescrição (todas as semanas)
+    historico_adesao = {}
+    for p in prescricoes:
+        historico_adesao[p.id] = sorted(
+            [{"seg": a.semana.isoformat(), "pct": NIVEL_PCT.get(a.nivel.value, 0), "cor": NIVEL_COR.get(a.nivel.value, "#ccc")}
+             for a in p.adesoes],
+            key=lambda x: x["seg"]
+        )
+
     lista_tratamentos = []
     for p in sorted(prescricoes, key=lambda x: x.semana_inicio or date.min, reverse=True):
         if p.semana_inicio and p.semana_fim:
@@ -273,6 +282,7 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
             "adesao_cor": NIVEL_COR.get(adesao_atual, "#ccc") if adesao_atual else None,
             "adesao_pct": NIVEL_PCT.get(adesao_atual, 0) if adesao_atual else 0,
             "seg_atual": seg_atual.isoformat(),
+            "historico": historico_adesao.get(p.id, []),
         })
 
     return {

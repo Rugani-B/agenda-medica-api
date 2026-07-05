@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agenda — {{ paciente.nome }}</title>
   <link rel="stylesheet" href="/static/style.css?v={{ cache_bust }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -507,6 +508,11 @@ const LISTA_T = ANUAL.lista_tratamentos || [];
       </div>`;
     }
 
+    const canvasId = `graf-trat-${p.id}`;
+    const grafHtml = p.historico && p.historico.length
+      ? `<div class="lst-trat-graf"><canvas id="${canvasId}" height="80"></canvas></div>`
+      : '';
+
     return `<div class="lst-trat-card">
       <div class="lst-trat-header">
         <span class="lst-trat-medico">${p.medico ? 'Dr(a). '+p.medico : 'Médico n/i'}</span>
@@ -514,10 +520,41 @@ const LISTA_T = ANUAL.lista_tratamentos || [];
         <span class="lst-trat-periodo">${p.periodo}</span>
       </div>
       <div class="lst-trat-meds">${meds}</div>
+      ${grafHtml}
       ${adesaoHtml}
     </div>`;
   }).join('');
 })();
+
+// Gráficos de adesão por tratamento
+LISTA_T.forEach(p => {
+  if (!p.historico || !p.historico.length) return;
+  const canvas = document.getElementById(`graf-trat-${p.id}`);
+  if (!canvas) return;
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: p.historico.map(h => h.seg.slice(5).replace('-', '/')),
+      datasets: [{
+        data: p.historico.map(h => h.pct),
+        backgroundColor: p.historico.map(h => h.cor),
+        borderRadius: 3,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => `Adesão: ${ctx.parsed.y}%` }
+      }},
+      scales: {
+        y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 10 } }, grid: { color: '#f0f0f0' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } }
+      }
+    }
+  });
+});
 
 function toggleModoGlobal() {
   const btn = document.getElementById('btn-modo-global');
