@@ -624,19 +624,10 @@ function centralizarSemanaAtual(scrollId) {
   document.getElementById(id).addEventListener("dblclick", () => centralizarSemanaAtual(id));
 });
 
-// Scroll automático para o mês atual em cada calendário anual
-function scrollParaHoje(scrollId) {
-  const mesAtual = HOJE.slice(0, 7); // "2026-06"
-  // encontra a primeira célula cujo data-seg começa com o mês atual
-  // não há data-seg aqui, mas podemos estimar a posição pela proporção do mês
-  const mesNum = parseInt(HOJE.slice(5, 7));
-  const scroll = document.getElementById(scrollId);
-  const larguraTotal = scroll.scrollWidth;
-  scroll.scrollLeft = (larguraTotal / 12) * (mesNum - 2);
-}
-scrollParaHoje("scroll-consultas");
-scrollParaHoje("scroll-exames");
-scrollParaHoje("scroll-tratamentos");
+// Centraliza na semana atual ao carregar cada calendário anual
+["scroll-consultas","scroll-exames","scroll-tratamentos"].forEach(id => {
+  centralizarSemanaAtual(id);
+});
 
 // Abre hoje automaticamente
 if (EVENTOS[HOJE]) mostrarDia(HOJE);
