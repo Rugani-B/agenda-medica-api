@@ -63,6 +63,12 @@ class DialogConsulta(QDialog):
         self.tabs.addTab(self._aba_pedidos(),     "🧪 Pedidos de Exame")
         layout.addWidget(self.tabs)
 
+        # Faixa de confirmação pelo familiar
+        if self.consulta:
+            self._faixa_confirmacao = self._criar_faixa_confirmacao()
+            if self._faixa_confirmacao:
+                layout.addWidget(self._faixa_confirmacao)
+
         # Botões
         botoes = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save |
@@ -197,6 +203,32 @@ class DialogConsulta(QDialog):
         layout.addLayout(btn_layout)
 
         return widget
+
+    # ── Faixa de confirmação pelo familiar ────────────
+    def _criar_faixa_confirmacao(self):
+        from app.models.confirmacao import Confirmacao, StatusConfirmacao
+        try:
+            cf = self.db.query(Confirmacao).filter(
+                Confirmacao.consulta_id == self.consulta.id,
+                Confirmacao.status == StatusConfirmacao.realizada,
+            ).first()
+        except Exception:
+            return None
+        if not cf:
+            return None
+
+        frame = QWidget()
+        lay = QHBoxLayout(frame)
+        lay.setContentsMargins(10, 6, 10, 6)
+        frame.setStyleSheet(
+            "background:#e8f8e8; border-radius:6px; border: 1px solid #a8d8a8;"
+        )
+        data_str = cf.respondido_em.strftime("%d/%m/%Y às %H:%M") if cf.respondido_em else ""
+        nome = cf.respondido or "Familiar"
+        lbl = QLabel(f"✅  Confirmada pelo familiar  ·  {nome}  ·  {data_str}")
+        lbl.setStyleSheet("color:#1a7a1a; font-size:12px; font-weight:bold;")
+        lay.addWidget(lbl)
+        return frame
 
     # ── Preencher dados ────────────────────────────────
     def _preencher_dados(self):

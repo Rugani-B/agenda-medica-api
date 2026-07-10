@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import (
     QFrame, QScrollArea, QSizePolicy, QGridLayout,
     QLineEdit, QSplitter, QDateEdit
 )
-from PyQt6.QtCore import Qt, QSize, QDate, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import Qt, QSize, QDate, pyqtSignal, QRect
+from PyQt6.QtGui import QFont, QColor, QPainter, QBrush, QPen, QFontMetrics
 
 from app.database.connection import SessionLocal
 from app.services.adesao_service import AdesaoService
@@ -43,6 +43,104 @@ COR_TRATAMENTO   = "#d4eaf7"   # dentro do tratamento, sem registro
 COR_FORA         = "#f0f0f0"   # fora do período de tratamento
 COR_FORA_TEXTO   = "#c8c8c8"
 COR_DENTRO_TEXTO = "#7fb3d3"
+
+
+class GraficoAdesao(QWidget):
+    """Gráfico de barras verticais mostrando % de adesão por semana."""
+
+    _COR_BARRA = {
+        "nenhuma": QColor("#888780"),
+        "baixa"  : QColor("#E24B4A"),
+        "parcial": QColor("#EF9F27"),
+        "boa"    : QColor("#378ADD"),
+        "total"  : QColor("#639922"),
+    }
+    _COR_VAZIA = QColor("#dce8f2")
+
+    def __init__(self, adesoes, semana_ini, semana_fim, parent=None):
+        super().__init__(parent)
+        self._pontos = self._build(adesoes, semana_ini, semana_fim)
+        self.setMinimumHeight(130)
+        self.setMaximumHeight(160)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def _build(self, adesoes, ini, fim):
+        if not ini or not fim:
+            # sem período definido: usa só as semanas com registro
+            semanas = sorted({a.semana for a in adesoes})
+        else:
+            semanas = []
+            s = ini
+            while s <= fim:
+                semanas.append(s)
+                s += datetime.timedelta(weeks=1)
+        mapa = {a.semana: a for a in adesoes}
+        pontos = []
+        for s in semanas:
+            a = mapa.get(s)
+            if a:
+                nivel_v = a.nivel.value if hasattr(a.nivel, 'value') else a.nivel
+                pct = NIVEL_PCT.get(nivel_v, 0)
+                cor = self._COR_BARRA.get(nivel_v, QColor("#ccc"))
+            else:
+                pct = None
+                cor = self._COR_VAZIA
+            pontos.append((s, pct, cor))
+        return pontos
+
+    def paintEvent(self, event):
+        if not self._pontos:
+            return
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        W, H = self.width(), self.height()
+        PAD_L, PAD_R, PAD_T, PAD_B = 36, 8, 10, 28
+        area_w = W - PAD_L - PAD_R
+        area_h = H - PAD_T - PAD_B
+
+        n = len(self._pontos)
+        bar_w = max(4, min(22, area_w // max(n, 1) - 2))
+        step  = area_w / max(n, 1)
+
+        # Linhas de grade (0, 25, 50, 75, 100%)
+        p.setPen(QPen(QColor("#e0e0e0"), 1))
+        font = QFont("Arial", 8)
+        p.setFont(font)
+        fm = QFontMetrics(font)
+        for pct in [0, 25, 50, 75, 100]:
+            y = PAD_T + area_h - int(pct / 100 * area_h)
+            p.drawLine(PAD_L, y, W - PAD_R, y)
+            p.setPen(QColor("#aaa"))
+            p.drawText(QRect(0, y - 8, PAD_L - 4, 16),
+                       Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                       f"{pct}%")
+            p.setPen(QPen(QColor("#e0e0e0"), 1))
+
+        # Barras
+        for i, (semana, pct, cor) in enumerate(self._pontos):
+            x = PAD_L + int(i * step + (step - bar_w) / 2)
+            if pct is not None:
+                bh = max(3, int(pct / 100 * area_h))
+                y  = PAD_T + area_h - bh
+                p.setBrush(QBrush(cor))
+                p.setPen(Qt.PenStyle.NoPen)
+                p.drawRoundedRect(x, y, bar_w, bh, 2, 2)
+            else:
+                p.setBrush(QBrush(self._COR_VAZIA))
+                p.setPen(Qt.PenStyle.NoPen)
+                p.drawRoundedRect(x, PAD_T + area_h - 6, bar_w, 6, 2, 2)
+
+            # Label da semana (mês/dia) a cada ~6 barras ou se poucas
+            if n <= 20 or i % max(1, n // 10) == 0:
+                p.setPen(QColor("#999"))
+                p.setFont(QFont("Arial", 7))
+                label = semana.strftime("%d/%m")
+                lw = fm.horizontalAdvance(label)
+                lx = x + bar_w // 2 - lw // 2
+                p.drawText(lx, H - 4, label)
+
+        p.end()
 
 
 def _segunda_feira(d: datetime.date) -> datetime.date:
@@ -230,6 +328,17 @@ class TelAdesao(QWidget):
             lo.setStyleSheet("color:#666; font-size:11px; font-style:italic;")
             cl.addWidget(lo)
         self.detalhe_lay.addWidget(cab)
+
+        # ── Gráfico de adesão ─────────────────────────
+        if adesoes or (p.semana_inicio and p.semana_fim):
+            lbl_graf = QLabel("Evolução da adesão")
+            lbl_graf.setStyleSheet("font-size:11px; color:#888; margin-top:6px;")
+            self.detalhe_lay.addWidget(lbl_graf)
+            grafico = GraficoAdesao(adesoes, p.semana_inicio, p.semana_fim)
+            grafico.setStyleSheet(
+                "background:#fafafa; border:0.5px solid #e0e0e0; border-radius:8px;"
+            )
+            self.detalhe_lay.addWidget(grafico)
 
         # ── Cards de medicamentos ──────────────────────
         if p.itens:

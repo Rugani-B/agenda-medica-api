@@ -2,10 +2,16 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QPushButton, QLabel,
-    QStackedWidget, QFrame, QCalendarWidget
+    QStackedWidget, QFrame, QCalendarWidget,
+    QFileDialog, QMessageBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+import subprocess
+import os
+from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 from app.ui.tela_pacientes    import TelaPacientes
 from app.ui.tela_consultas    import TelaConsultas
 from app.ui.tela_medicos      import TelaMedicos
@@ -14,6 +20,7 @@ from app.ui.tela_medicamentos   import TelaMedicamentos
 from app.ui.tela_pedidos_exame  import TelaPedidosExame
 from app.ui.tela_adesao         import TelAdesao
 from app.ui.tela_pendencias     import TelaPendencias
+from app.ui.tela_responsaveis   import TelaResponsaveis
 
 
 class TelaPrincipal(QMainWindow):
@@ -55,6 +62,7 @@ class TelaPrincipal(QMainWindow):
         tela_pend = TelaPendencias()
         tela_pend.abrir_adesao_prescricao.connect(self._abrir_adesao_prescricao)
         self.stack.addWidget(tela_pend)              # índice 7
+        self.stack.addWidget(TelaResponsaveis())     # índice 8
 
         layout_principal.addWidget(self.stack)
 
@@ -88,8 +96,9 @@ class TelaPrincipal(QMainWindow):
         btn_pendencias   = self._criar_btn_menu("✅ Pendências",        7)
 
         # Botões do menu — seção cadastros
-        btn_medicos      = self._criar_btn_menu("👨‍⚕️ Médicos",          2)
-        btn_medicamentos = self._criar_btn_menu("💊 Medicamentos",      4)
+        btn_medicos        = self._criar_btn_menu("👨‍⚕️ Médicos",          2)
+        btn_medicamentos   = self._criar_btn_menu("💊 Medicamentos",      4)
+        btn_responsaveis   = self._criar_btn_menu("👥 Responsáveis",      8)
 
         # Separador visual
         separador = QFrame()
@@ -116,39 +125,27 @@ class TelaPrincipal(QMainWindow):
         layout.addWidget(lbl_cadastros)
         layout.addWidget(btn_medicos)
         layout.addWidget(btn_medicamentos)
+        layout.addWidget(btn_responsaveis)
         layout.addStretch()
 
-        # ── Calendário no rodapé do sidebar ───────────
-        self.calendario_sidebar = QCalendarWidget()
-        self.calendario_sidebar.setGridVisible(True)
-        self.calendario_sidebar.setVerticalHeaderFormat(
-            QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader
-        )
-        self.calendario_sidebar.setStyleSheet("""
-            QCalendarWidget {
-                background-color: #2c3e50;
+        # ── Botão de backup ───────────────────────────
+        btn_backup = QPushButton("💾 Backup")
+        btn_backup.setFixedHeight(28)
+        btn_backup.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
                 color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 11px;
+                padding: 0 10px;
             }
-            QCalendarWidget QAbstractItemView {
-                background-color: #34495e;
-                color: white;
-                selection-background-color: #1abc9c;
-                selection-color: white;
-            }
-            QCalendarWidget QWidget#qt_calendar_navigationbar {
-                background-color: #1a252f;
-            }
-            QCalendarWidget QToolButton {
-                color: white;
-                background-color: transparent;
-            }
-            QCalendarWidget QMenu {
-                background-color: #34495e;
-                color: white;
-            }
+            QPushButton:hover { background-color: #2ecc71; }
+            QPushButton:pressed { background-color: #1e8449; }
         """)
-        self.calendario_sidebar.selectionChanged.connect(self._filtrar_por_calendario)
-        layout.addWidget(self.calendario_sidebar)
+        btn_backup.clicked.connect(self._fazer_backup)
+        layout.addWidget(btn_backup)
+
 
         return menu
 
@@ -170,11 +167,71 @@ class TelaPrincipal(QMainWindow):
         if hasattr(tela_adesao, 'selecionar_prescricao'):
             tela_adesao.selecionar_prescricao(prescricao_id)
 
-    def _filtrar_por_calendario(self):
-        data = self.calendario_sidebar.selectedDate()
-        tela = self.stack.currentWidget()
-        if hasattr(tela, '_filtrar_por_calendario_data'):
-            tela._filtrar_por_calendario_data(data)
+    def _fazer_backup(self):
+        # Extrai credenciais do DATABASE_URL
+        db_url = os.getenv("DATABASE_URL", "")
+        try:
+            # mysql+pymysql://user:pass@host:port/dbname
+            sem_prefixo = db_url.split("://", 1)[1]
+            user_pass, resto = sem_prefixo.split("@", 1)
+            usuario, senha = user_pass.split(":", 1)
+            host_port, dbname = resto.split("/", 1)
+            dbname = dbname.split("?")[0]
+            if ":" in host_port:
+                host, port = host_port.split(":", 1)
+            else:
+                host, port = host_port, "3306"
+        except Exception:
+            QMessageBox.critical(self, "Erro", "Não foi possível ler DATABASE_URL do .env")
+            return
+
+        # Sugere nome de arquivo com data/hora
+        nome_sugerido = f"backup_agenda_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql"
+        caminho, _ = QFileDialog.getSaveFileName(
+            self, "Salvar backup", nome_sugerido, "SQL Files (*.sql);;All Files (*)"
+        )
+        if not caminho:
+            return
+
+        # Procura mysqldump no PATH e em locais comuns
+        mysqldump = "mysqldump"
+        locais_comuns = [
+            r"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe",
+            r"C:\Program Files\MySQL\MySQL Server 9.4\bin\mysqldump.exe",
+            r"C:\xampp\mysql\bin\mysqldump.exe",
+        ]
+        for loc in locais_comuns:
+            if os.path.exists(loc):
+                mysqldump = loc
+                break
+
+        env = os.environ.copy()
+        env["MYSQL_PWD"] = senha
+
+        cmd = [mysqldump, f"-u{usuario}", f"-h{host}", f"-P{port}", dbname]
+        try:
+            with open(caminho, "w", encoding="utf-8") as f:
+                result = subprocess.run(
+                    cmd, stdout=f, stderr=subprocess.PIPE,
+                    env=env, timeout=120
+                )
+            if result.returncode != 0:
+                erro = result.stderr.decode("utf-8", errors="replace")
+                QMessageBox.critical(self, "Erro no backup", f"mysqldump falhou:\n{erro}")
+                return
+            tamanho = os.path.getsize(caminho) // 1024
+            QMessageBox.information(
+                self, "Backup concluído",
+                f"Backup salvo com sucesso!\n\n{caminho}\n\nTamanho: {tamanho} KB"
+            )
+        except FileNotFoundError:
+            QMessageBox.critical(
+                self, "mysqldump não encontrado",
+                "O programa mysqldump não foi encontrado.\n\n"
+                "Instale o MySQL Client ou o MySQL Workbench para habilitar o backup."
+            )
+        except subprocess.TimeoutExpired:
+            QMessageBox.critical(self, "Timeout", "O backup demorou demais. Verifique a conexão.")
 
     def _criar_btn_menu(self, texto: str, indice: int):
         btn = QPushButton(texto)

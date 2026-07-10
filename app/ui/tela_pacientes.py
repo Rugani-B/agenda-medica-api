@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QLabel, QMessageBox, QSplitter,
     QFrame, QScrollArea, QGridLayout, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QColor
 
 from app.database.connection import SessionLocal
@@ -17,6 +17,7 @@ from app.repositorios.prescricao_repository import PrescricaoRepository
 from app.services.adesao_service import AdesaoService
 from app.models.adesao_tratamento import NIVEL_PCT
 from app.ui.components.dialogs.dialog_paciente import DialogPaciente
+from app.ui.components.dialogs.dialog_relatorio import DialogRelatorio
 
 # Cores de adesão (mesmas de tela_adesao.py)
 _COR_ADESAO = {
@@ -191,27 +192,64 @@ class TelaPacientes(QWidget):
         self.tabela.currentCellChanged.connect(self._ao_selecionar)
         self.tabela.doubleClicked.connect(self._abrir_dialog_editar)
 
-        btn_row = QHBoxLayout()
-        btn_novo     = QPushButton("+ Novo")
-        btn_editar   = QPushButton("✏️ Editar")
-        btn_desativar = QPushButton("🚫")
-        for b in (btn_novo, btn_editar, btn_desativar):
+        # Linha de botões principais
+        btn_row1 = QHBoxLayout()
+        btn_novo      = QPushButton("+ Novo")
+        btn_editar    = QPushButton("✏️ Editar")
+        btn_relatorio = QPushButton("📄 Relatório PDF")
+        btn_relatorio.setStyleSheet("background:#1a5276; color:white; border-radius:4px; padding: 0 12px;")
+        btn_relatorio.setMinimumWidth(130)
+        for b in (btn_novo, btn_editar, btn_relatorio):
             b.setFixedHeight(28)
         btn_novo.clicked.connect(self._abrir_dialog_novo)
         btn_editar.clicked.connect(self._abrir_dialog_editar)
-        btn_desativar.clicked.connect(self._desativar_paciente)
-        btn_row.addWidget(btn_novo)
-        btn_row.addWidget(btn_editar)
-        btn_row.addWidget(btn_desativar)
+        btn_relatorio.clicked.connect(self._abrir_relatorio)
+        btn_row1.addWidget(btn_novo)
+        btn_row1.addWidget(btn_editar)
+        btn_row1.addStretch()
+        btn_row1.addWidget(btn_relatorio)
 
+        # Separador visual + botão destrutivo isolado
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("color:#e0e0e0;")
+
+        btn_excluir = QPushButton("🗑 Excluir paciente")
+        btn_excluir.setFixedHeight(26)
+        btn_excluir.setStyleSheet(
+            "color:#922b21; background:transparent; border:1px solid #e74c3c;"
+            "border-radius:4px; font-size:11px;"
+        )
+        btn_excluir.clicked.connect(self._desativar_paciente)
+        btn_row2 = QHBoxLayout()
+        btn_row2.addStretch()
+        btn_row2.addWidget(btn_excluir)
+
+        # Label de carregando
         esq_lay.addWidget(self.input_busca)
         esq_lay.addWidget(self.tabela)
-        esq_lay.addLayout(btn_row)
+        esq_lay.addLayout(btn_row1)
+        esq_lay.addWidget(sep)
+        esq_lay.addLayout(btn_row2)
 
         # ── Painel direito: calendário anual ──────────
         dir_scroll = QScrollArea()
         dir_scroll.setWidgetResizable(True)
         dir_scroll.setFrameShape(QFrame.Shape.NoFrame)
+
+        # Widget externo que empilha loading + conteúdo
+        dir_outer = QWidget()
+        dir_outer_lay = QVBoxLayout(dir_outer)
+        dir_outer_lay.setContentsMargins(0, 0, 0, 0)
+        dir_outer_lay.setSpacing(0)
+
+        self.lbl_loading = QLabel("⏳  Carregando...")
+        self.lbl_loading.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_loading.setStyleSheet(
+            "color:#1a5276; font-size:15px; font-weight:bold; padding:40px;"
+        )
+        self.lbl_loading.setVisible(False)
+        dir_outer_lay.addWidget(self.lbl_loading)
 
         self.cal_container = QWidget()
         self.cal_lay = QVBoxLayout(self.cal_container)
@@ -219,8 +257,9 @@ class TelaPacientes(QWidget):
         self.cal_lay.setSpacing(6)
         self.cal_lay.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._mostrar_placeholder()
+        dir_outer_lay.addWidget(self.cal_container)
 
-        dir_scroll.setWidget(self.cal_container)
+        dir_scroll.setWidget(dir_outer)
 
         splitter.addWidget(esq)
         splitter.addWidget(dir_scroll)
@@ -265,8 +304,17 @@ class TelaPacientes(QWidget):
         pac_id = id_item.data(Qt.ItemDataRole.UserRole)
         if pac_id is None:
             return
+
+        self.tabela.selectRow(row)
+        self.lbl_loading.setVisible(True)
+        self.cal_container.setVisible(False)
+        from PyQt6.QtWidgets import QApplication
+        QApplication.processEvents()
+
         self.paciente_sel = self.service.buscar_por_id(pac_id)
         self._renderizar_calendario()
+        self.lbl_loading.setVisible(False)
+        self.cal_container.setVisible(True)
 
     # ── Calendário anual ───────────────────────────────
 
@@ -716,12 +764,56 @@ class TelaPacientes(QWidget):
         if row < 0:
             QMessageBox.warning(self, "Atenção", "Selecione um paciente.")
             return
-        nome    = self.tabela.item(row, 1).text()
-        pac_id  = self.tabela.item(row, 0).data(Qt.ItemDataRole.UserRole)
-        resp = QMessageBox.question(
-            self, "Confirmar", f"Desativar '{nome}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        nome   = self.tabela.item(row, 1).text()
+        pac_id = self.tabela.item(row, 0).data(Qt.ItemDataRole.UserRole)
+
+        # Passo 1 — aviso geral
+        r1 = QMessageBox.warning(
+            self, "⚠️ Atenção",
+            f"Você está prestes a <b>excluir permanentemente</b> o paciente:<br><br>"
+            f"<b>{nome}</b><br><br>"
+            "Esta ação removerá <b>todas</b> as consultas, prescrições, exames e "
+            "registros de adesão vinculados a este paciente.<br><br>"
+            "<b>Não há como desfazer esta operação.</b>",
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
         )
-        if resp == QMessageBox.StandardButton.Yes:
-            self.service.desativar(pac_id)
-            self._carregar_pacientes()
+        if r1 != QMessageBox.StandardButton.Ok:
+            return
+
+        # Passo 2 — aviso de backup
+        r2 = QMessageBox.warning(
+            self, "⚠️ Sem backup automático",
+            "Você realizou um backup recente do banco de dados?<br><br>"
+            "<b>Não há backup automático.</b> Se excluir agora sem ter feito backup, "
+            "os dados de <b>{}</b> serão perdidos para sempre.".format(nome),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if r2 != QMessageBox.StandardButton.Yes:
+            QMessageBox.information(
+                self, "Operação cancelada",
+                "Faça um backup pelo menu <b>💾 Backup</b> antes de excluir o paciente."
+            )
+            return
+
+        # Passo 3 — confirmação final
+        r3 = QMessageBox.critical(
+            self, "Confirmação final",
+            f"ÚLTIMA CHANCE — confirma a exclusão permanente de <b>{nome}</b>?<br><br>"
+            "Clique em <b>Sim</b> para excluir definitivamente.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if r3 != QMessageBox.StandardButton.Yes:
+            return
+
+        self.service.desativar(pac_id)
+        self._carregar_pacientes()
+
+    def _abrir_relatorio(self):
+        row = self.tabela.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Atenção", "Selecione um paciente.")
+            return
+        nome   = self.tabela.item(row, 1).text()
+        pac_id = self.tabela.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        dlg = DialogRelatorio(pac_id, nome, parent=self)
+        dlg.exec()

@@ -14,6 +14,8 @@ from app.services.medico_service import MedicoService
 from app.services.paciente_service import PacienteService
 from app.ui.components.dialogs.dialog_consulta import DialogConsulta
 from app.models.consulta import StatusConsulta
+from app.models.confirmacao import Confirmacao
+from app.models.responsavel import Responsavel
 
 
 STATUS_CORES = {
@@ -119,7 +121,7 @@ class TelaConsultas(QWidget):
         self.tabela.setColumnCount(9)
         self.tabela.setHorizontalHeaderLabels([
             "ID", "Paciente", "Médico", "Especialidade", "Data/Hora", "Status",
-            "Prescrições", "Pedidos de Exame", "Observações"
+            "Confirmado", "Prescrições", "Pedidos de Exame", "Observações"
         ])
         header = self.tabela.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
@@ -131,9 +133,10 @@ class TelaConsultas(QWidget):
         self.tabela.setColumnWidth(3, 130)   # Especialidade
         self.tabela.setColumnWidth(4, 130)   # Data/Hora
         self.tabela.setColumnWidth(5, 100)   # Status
-        self.tabela.setColumnWidth(6, 100)   # Prescrições
-        self.tabela.setColumnWidth(7, 130)   # Pedidos de Exame
-        self.tabela.setColumnWidth(8, 200)   # Observações
+        self.tabela.setColumnWidth(6, 140)   # Confirmado
+        self.tabela.setColumnWidth(7, 100)   # Prescrições
+        self.tabela.setColumnWidth(8, 130)   # Pedidos de Exame
+        self.tabela.setColumnWidth(9, 200)   # Observações
         self.tabela.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tabela.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela.doubleClicked.connect(self._abrir_dialog_editar)
@@ -237,6 +240,28 @@ class TelaConsultas(QWidget):
             consultas = sorted(self.service.buscar_todos(),
                                key=lambda c: c.data_hora or __import__('datetime').datetime.min)
 
+        # mapa de confirmações por consulta_id
+        conf_map = {}
+        try:
+            confs = (
+                self.db.query(Confirmacao, Responsavel)
+                .join(Responsavel, Confirmacao.respondido == Responsavel.nome.cast(Responsavel.nome.type), isouter=True)
+                .filter(Confirmacao.status == __import__('app.models.confirmacao', fromlist=['StatusConfirmacao']).StatusConfirmacao.realizada)
+                .all()
+            )
+        except Exception:
+            confs = []
+        # abordagem simples: busca todas as confirmações com status realizada
+        try:
+            from app.models.confirmacao import StatusConfirmacao
+            todas_conf = self.db.query(Confirmacao).filter(
+                Confirmacao.status == StatusConfirmacao.realizada
+            ).all()
+            for cf in todas_conf:
+                conf_map[cf.consulta_id] = cf
+        except Exception:
+            pass
+
         self.tabela.setRowCount(0)
 
         for c in consultas:
@@ -254,6 +279,19 @@ class TelaConsultas(QWidget):
             tem_prescricao = bool(c.prescricoes)
             tem_pedido     = bool(c.pedidos_exame)
 
+            # Coluna Confirmado pelo familiar
+            cf = conf_map.get(c.id)
+            if cf:
+                data_cf = cf.respondido_em.strftime("%d/%m %H:%M") if cf.respondido_em else ""
+                resp_nome = cf.respondido or "familiar"
+                conf_txt = f"✓ {resp_nome} {data_cf}"
+                item_conf = QTableWidgetItem(conf_txt)
+                item_conf.setForeground(QColor("#1a7a1a"))
+            else:
+                item_conf = QTableWidgetItem("—")
+                item_conf.setForeground(QColor("#aaa"))
+            item_conf.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
             item_presc = QTableWidgetItem("✅" if tem_prescricao else "✖")
             item_presc.setForeground(QColor("#27ae60" if tem_prescricao else "#95a5a6"))
             item_presc.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -268,18 +306,20 @@ class TelaConsultas(QWidget):
             self.tabela.setItem(row, 3, QTableWidgetItem(especialidade))
             self.tabela.setItem(row, 4, QTableWidgetItem(data_str))
             self.tabela.setItem(row, 5, QTableWidgetItem(status.capitalize()))
-            self.tabela.setItem(row, 6, item_presc)
-            self.tabela.setItem(row, 7, item_pedido)
-            self.tabela.setItem(row, 8, QTableWidgetItem(c.observacoes or ""))
+            self.tabela.setItem(row, 6, item_conf)
+            self.tabela.setItem(row, 7, item_presc)
+            self.tabela.setItem(row, 8, item_pedido)
+            self.tabela.setItem(row, 9, QTableWidgetItem(c.observacoes or ""))
 
             for col in range(self.tabela.columnCount()):
                 item = self.tabela.item(row, col)
                 if item:
                     if col == 5:  # coluna Status
                         item.setBackground(QColor(cor))
-                        item.setForeground(QColor("#ffffff"))  # texto branco no status
+                        item.setForeground(QColor("#ffffff"))
+                    elif col == 6 and cf:  # Confirmado — fundo verde claro
+                        item.setBackground(QColor("#e8f8e8"))
                     else:
-                        # Linhas alternadas em azul claro (preserva a cor da fonte já definida)
                         bg = "#eaf4fb" if row % 2 == 0 else "#d6eaf8"
                         item.setBackground(QColor(bg))
 

@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Form, Query
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
 from collections import defaultdict
@@ -617,3 +617,39 @@ def registrar_adesao(
         ))
     db.commit()
     return RedirectResponse(url=f"/familia/?token={token}", status_code=303)
+
+
+@router.get("/relatorio")
+def baixar_relatorio(
+    token: str,
+    responsavel_id: int,
+    inicio: str = Query(default=None),
+    fim: str = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    from datetime import datetime as dt, timedelta
+    import tempfile, os
+    from app.services.relatorio_service import gerar_relatorio_paciente
+
+    responsavel = _get_responsavel(token, db)
+    paciente = db.query(Paciente).filter_by(id=responsavel.paciente_id).first()
+    if not paciente:
+        raise HTTPException(status_code=404, detail="Paciente não encontrado")
+
+    hoje = date.today()
+    d_ini = dt.strptime(inicio, "%Y-%m-%d").date() if inicio else hoje - timedelta(days=90)
+    d_fim = dt.strptime(fim,    "%Y-%m-%d").date() if fim    else hoje
+
+    secoes = {"consultas": True, "exames": True, "prescricoes": True, "adesao": True}
+
+    nome_arquivo = f"relatorio_{paciente.nome.replace(' ', '_')}_{d_ini.strftime('%Y%m%d')}.pdf"
+    caminho = os.path.join(tempfile.gettempdir(), nome_arquivo)
+
+    gerar_relatorio_paciente(paciente.id, d_ini, d_fim, secoes, caminho)
+
+    return FileResponse(
+        path=caminho,
+        media_type="application/pdf",
+        filename=nome_arquivo,
+        headers={"Content-Disposition": f'attachment; filename="{nome_arquivo}"'},
+    )

@@ -118,6 +118,59 @@ header {
 }
 
 /* Resumo */
+/* ── Barra de Relatório PDF ── */
+.relatorio-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #eaf1f8;
+  border-bottom: 1px solid var(--c-border);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.relatorio-titulo {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1a5276;
+  white-space: nowrap;
+}
+.relatorio-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.relatorio-label {
+  font-size: 0.75rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.relatorio-input {
+  font-size: 0.78rem;
+  padding: 3px 6px;
+  border: 1px solid #b0c4d8;
+  border-radius: 4px;
+  background: #fff;
+  color: #222;
+}
+.relatorio-btn {
+  font-size: 0.78rem;
+  padding: 4px 14px;
+  background: #1a5276;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.relatorio-btn:hover { background: #154360; }
+
+body.tema-cinza .relatorio-bar { background: #e0e4e8; }
+body.tema-cinza .relatorio-input { background: #f5f5f5; border-color: #aaa; }
+
 .resumo-bar {
   display: flex;
   flex-direction: column;

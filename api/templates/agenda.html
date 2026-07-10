@@ -22,6 +22,23 @@
   <!-- ═══════════════ METADE ESQUERDA ═══════════════ -->
   <div class="painel-esq">
 
+    <!-- Relatório PDF -->
+    <div class="relatorio-bar">
+      <span class="relatorio-titulo">📄 Relatório PDF</span>
+      <form class="relatorio-form" id="formRelatorio"
+            action="/familia/relatorio" method="get" target="_blank">
+        <input type="hidden" name="token" value="{{ token }}">
+        <input type="hidden" name="responsavel_id" value="{{ responsavel.id }}">
+        <label class="relatorio-label">De
+          <input type="date" name="inicio" id="relInicio" class="relatorio-input">
+        </label>
+        <label class="relatorio-label">Até
+          <input type="date" name="fim" id="relFim" class="relatorio-input">
+        </label>
+        <button type="submit" class="relatorio-btn">⬇ Baixar</button>
+      </form>
+    </div>
+
     <!-- Resumo da semana -->
     <div class="resumo-bar">
       <div class="resumo-titulo">Esta semana:</div>
@@ -625,6 +642,15 @@ scrollParaHoje("scroll-tratamentos");
 if (EVENTOS[HOJE]) mostrarDia(HOJE);
 
 // Tema
+// Pré-preenche datas do formulário de relatório (últimos 90 dias)
+(function() {
+  const hoje = new Date();
+  const ini  = new Date(hoje); ini.setDate(ini.getDate() - 90);
+  const fmt  = d => d.toISOString().slice(0, 10);
+  document.getElementById('relInicio').value = fmt(ini);
+  document.getElementById('relFim').value    = fmt(hoje);
+})();
+
 function toggleTema() {
   const cinza = document.body.classList.toggle('tema-cinza');
   localStorage.setItem('tema', cinza ? 'cinza' : 'padrao');
