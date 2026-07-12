@@ -556,14 +556,23 @@ def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
 
     caminho = anexo.caminho or ""
 
-    # URL do Cloudinary → adiciona fl_attachment para forçar download de PDFs
+    # URL do Cloudinary → baixa e serve com headers corretos
     if caminho.startswith("http"):
-        url = caminho
-        nome = anexo.nome or "documento.pdf"
-        ext = nome.rsplit(".", 1)[-1].lower() if "." in nome else ""
-        if ext == "pdf" and "/upload/" in url:
-            url = url.replace("/upload/", "/upload/fl_attachment/", 1)
-        return Redirect(url=url, status_code=302)
+        import httpx, mimetypes
+        nome = anexo.nome or "documento"
+        mt, _ = mimetypes.guess_type(nome)
+        mt = mt or "application/octet-stream"
+        try:
+            r = httpx.get(caminho, timeout=30, follow_redirects=True)
+            r.raise_for_status()
+            from fastapi.responses import Response
+            return Response(
+                content=r.content,
+                media_type=mt,
+                headers={"Content-Disposition": f'attachment; filename="{nome}"'},
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Erro ao buscar arquivo: {e}")
 
     # Fallback: arquivo local (só funciona em ambiente local)
     import os
