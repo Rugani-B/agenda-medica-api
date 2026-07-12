@@ -28,6 +28,8 @@ def upload_anexo(caminho_local: str, paciente_id: int, nome_arquivo: str) -> str
         caminho_local,
         public_id=public_id,
         resource_type=resource_type,
+        type="upload",        # garante acesso público
+        access_mode="public",
         overwrite=True,
         use_filename=True,
         unique_filename=False,

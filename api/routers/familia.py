@@ -556,23 +556,33 @@ def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
 
     caminho = anexo.caminho or ""
 
-    # URL do Cloudinary → baixa e serve com headers corretos
+    # URL do Cloudinary → gera URL assinada e redireciona
     if caminho.startswith("http"):
-        import httpx, mimetypes
-        nome = anexo.nome or "documento"
-        mt, _ = mimetypes.guess_type(nome)
-        mt = mt or "application/octet-stream"
+        import cloudinary, cloudinary.utils, os
+        cloudinary.config(
+            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+            api_key=os.getenv("CLOUDINARY_API_KEY"),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+            secure=True,
+        )
+        # Extrai public_id da URL
+        # Formato: .../raw/upload/v12345/agenda_medica/paciente_X/arquivo.pdf
         try:
-            r = httpx.get(caminho, timeout=30, follow_redirects=True)
-            r.raise_for_status()
-            from fastapi.responses import Response
-            return Response(
-                content=r.content,
-                media_type=mt,
-                headers={"Content-Disposition": f'attachment; filename="{nome}"'},
+            parte = caminho.split("/upload/")[-1]
+            if parte.startswith("v") and "/" in parte:
+                parte = parte.split("/", 1)[1]
+            public_id = parte  # inclui extensão para raw
+            signed_url, _ = cloudinary.utils.cloudinary_url(
+                public_id,
+                resource_type="raw",
+                sign_url=True,
+                secure=True,
+                attachment=True,   # força download
+                expires_at=int(__import__("time").time()) + 3600,
             )
+            return Redirect(url=signed_url, status_code=302)
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Erro ao buscar arquivo: {e}")
+            raise HTTPException(status_code=502, detail=f"Erro ao gerar URL: {e}")
 
     # Fallback: arquivo local (só funciona em ambiente local)
     import os
