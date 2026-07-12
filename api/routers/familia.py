@@ -556,9 +556,14 @@ def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
 
     caminho = anexo.caminho or ""
 
-    # URL do Cloudinary → redireciona direto
+    # URL do Cloudinary → adiciona fl_attachment para forçar download de PDFs
     if caminho.startswith("http"):
-        return Redirect(url=caminho, status_code=302)
+        url = caminho
+        nome = anexo.nome or "documento.pdf"
+        ext = nome.rsplit(".", 1)[-1].lower() if "." in nome else ""
+        if ext == "pdf" and "/upload/" in url:
+            url = url.replace("/upload/", "/upload/fl_attachment/", 1)
+        return Redirect(url=url, status_code=302)
 
     # Fallback: arquivo local (só funciona em ambiente local)
     import os
