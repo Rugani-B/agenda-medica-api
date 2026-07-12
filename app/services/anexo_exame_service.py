@@ -48,20 +48,20 @@ class AnexoExameService:
     def anexar(self, exame_id: int, paciente_id: int, paciente_nome: str,
                caminho_origem: str) -> object:
         """
-        - Se o arquivo já está dentro de DOCS_ROOT → apenas registra.
-        - Caso contrário → copia para a pasta do paciente e registra.
-        Retorna o objeto AnexoExame criado.
+        1. Copia o arquivo para DOCS_ROOT (backup local).
+        2. Faz upload para Cloudinary e salva a URL no campo 'caminho'.
         """
+        from app.services.cloudinary_service import upload_anexo
+
         caminho_origem = os.path.normpath(caminho_origem)
         docs_root_norm = os.path.normpath(DOCS_ROOT)
 
-        # Verifica se já está no destino correto
+        # Cópia local
         if caminho_origem.startswith(docs_root_norm):
-            caminho_final = caminho_origem
+            caminho_local = caminho_origem
         else:
             pasta = _pasta_paciente(paciente_id, paciente_nome)
             nome_arquivo = os.path.basename(caminho_origem)
-            # Evita sobrescrever: adiciona timestamp se já existir
             destino = os.path.join(pasta, nome_arquivo)
             if os.path.exists(destino):
                 base, ext = os.path.splitext(nome_arquivo)
@@ -69,13 +69,22 @@ class AnexoExameService:
                 nome_arquivo = f"{base}_{ts}{ext}"
                 destino = os.path.join(pasta, nome_arquivo)
             shutil.copy2(caminho_origem, destino)
-            caminho_final = destino
+            caminho_local = destino
+
+        nome_arquivo = os.path.basename(caminho_local)
+
+        # Upload para Cloudinary → URL pública
+        try:
+            url = upload_anexo(caminho_local, paciente_id, nome_arquivo)
+        except Exception:
+            # Fallback: salva caminho local se Cloudinary falhar
+            url = caminho_local
 
         dados = {
             "exame_id" : exame_id,
-            "nome"     : os.path.basename(caminho_final),
-            "caminho"  : caminho_final,
-            "tipo"     : _detectar_tipo(caminho_final),
+            "nome"     : nome_arquivo,
+            "caminho"  : url,   # URL do Cloudinary (ou caminho local como fallback)
+            "tipo"     : _detectar_tipo(caminho_local),
             "criado_em": datetime.utcnow(),
         }
         return self.repo.criar(dados)

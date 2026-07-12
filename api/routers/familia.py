@@ -545,7 +545,7 @@ def detalhe_semana_exames(seg_str: str, token: str, db: Session = Depends(get_db
 
 @router.get("/anexo/{anexo_id}")
 def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
-    from fastapi.responses import FileResponse
+    from fastapi.responses import RedirectResponse as Redirect
     responsavel = _get_responsavel(token, db)
     anexo = db.query(AnexoExame).filter_by(id=anexo_id).first()
     if not anexo:
@@ -553,15 +553,22 @@ def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
     exame = db.query(Exame).filter_by(id=anexo.exame_id).first()
     if not exame or exame.paciente_id != responsavel.paciente_id:
         raise HTTPException(status_code=403)
-    import mimetypes, os
-    if not os.path.exists(anexo.caminho):
-        raise HTTPException(status_code=404, detail="Arquivo não encontrado no servidor")
-    mt, _ = mimetypes.guess_type(anexo.caminho)
-    return FileResponse(
-        path=anexo.caminho,
-        media_type=mt or "application/octet-stream",
-        filename=anexo.nome,
-    )
+
+    caminho = anexo.caminho or ""
+
+    # URL do Cloudinary → redireciona direto
+    if caminho.startswith("http"):
+        return Redirect(url=caminho, status_code=302)
+
+    # Fallback: arquivo local (só funciona em ambiente local)
+    import os
+    from fastapi.responses import FileResponse
+    import mimetypes
+    if not os.path.exists(caminho):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    mt, _ = mimetypes.guess_type(caminho)
+    return FileResponse(path=caminho, media_type=mt or "application/octet-stream",
+                        filename=anexo.nome)
 
 
 @router.post("/consulta/{consulta_id}/confirmar", response_class=RedirectResponse)
