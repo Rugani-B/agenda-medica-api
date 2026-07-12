@@ -556,33 +556,30 @@ def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
 
     caminho = anexo.caminho or ""
 
-    # URL do Cloudinary → gera URL assinada e redireciona
+    # URL do Cloudinary → baixa via API autenticada e serve ao cliente
     if caminho.startswith("http"):
-        import cloudinary, cloudinary.utils, os
-        cloudinary.config(
-            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-            api_key=os.getenv("CLOUDINARY_API_KEY"),
-            api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-            secure=True,
-        )
-        # Extrai public_id da URL
-        # Formato: .../raw/upload/v12345/agenda_medica/paciente_X/arquivo.pdf
+        import httpx, mimetypes, os
+        nome = anexo.nome or "documento"
+        mt, _ = mimetypes.guess_type(nome)
+        mt = mt or "application/octet-stream"
         try:
-            parte = caminho.split("/upload/")[-1]
-            if parte.startswith("v") and "/" in parte:
-                parte = parte.split("/", 1)[1]
-            public_id = parte  # inclui extensão para raw
-            signed_url, _ = cloudinary.utils.cloudinary_url(
-                public_id,
-                resource_type="raw",
-                sign_url=True,
-                secure=True,
-                attachment=True,   # força download
-                expires_at=int(__import__("time").time()) + 3600,
+            # Cloudinary aceita download autenticado passando api_key/api_secret como query params
+            api_key    = os.getenv("CLOUDINARY_API_KEY", "")
+            api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
+            r = httpx.get(caminho, auth=(api_key, api_secret),
+                          timeout=30, follow_redirects=True)
+            if r.status_code == 401:
+                # Tenta sem auth (caso seja público)
+                r = httpx.get(caminho, timeout=30, follow_redirects=True)
+            r.raise_for_status()
+            from fastapi.responses import Response
+            return Response(
+                content=r.content,
+                media_type=mt,
+                headers={"Content-Disposition": f'attachment; filename="{nome}"'},
             )
-            return Redirect(url=signed_url, status_code=302)
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Erro ao gerar URL: {e}")
+            raise HTTPException(status_code=502, detail=f"Erro ao buscar arquivo: {e}")
 
     # Fallback: arquivo local (só funciona em ambiente local)
     import os
