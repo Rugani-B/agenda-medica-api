@@ -459,15 +459,15 @@ function buildLista(containerId, itens, tipo) {
       return `<div class="lista-item lista-item-c" onclick="abrirModal('/familia/consulta/${item.id}/detalhe?token=${TOKEN}')">
         <span class="lista-data">${item.data}</span>
         <span class="lista-status" style="color:${cor}">${item.status}</span>
-        <span class="lista-nome">${item.especialidade || item.medico || 'Consulta'}</span>
-        <span class="lista-medico">${item.medico && item.especialidade ? 'Dr(a). '+item.medico : ''}</span>
+        <span class="lista-nome">${item.medico || item.especialidade || 'Consulta'}</span>
+        <span class="lista-medico">${item.especialidade || ''}</span>
       </div>`;
     } else {
       return `<div class="lista-item lista-item-e" onclick="abrirModal('/familia/semana-exames/${item.seg}?token=${TOKEN}')">
         <span class="lista-data">${item.data}</span>
         <span class="lista-status" style="color:${cor}">${item.status}</span>
-        <span class="lista-nome">${item.tipo}</span>
-        <span class="lista-medico">${item.local || ''}</span>
+        <span class="lista-nome">${item.local || item.tipo}</span>
+        <span class="lista-medico">${item.local ? item.tipo : ''}</span>
       </div>`;
     }
   }).join('');
