@@ -214,7 +214,17 @@ def gerar_relatorio_paciente(
                 ]]
                 import re as _re
                 def _strip_html(txt):
-                    return _re.sub(r"<[^>]+>", " ", txt or "").strip() or "—"
+                    if not txt:
+                        return "—"
+                    # Remove blocos <style>, <head>, <script> com conteúdo
+                    txt = _re.sub(r"<style[^>]*>.*?</style>", " ", txt, flags=_re.DOTALL | _re.IGNORECASE)
+                    txt = _re.sub(r"<head[^>]*>.*?</head>", " ", txt, flags=_re.DOTALL | _re.IGNORECASE)
+                    txt = _re.sub(r"<script[^>]*>.*?</script>", " ", txt, flags=_re.DOTALL | _re.IGNORECASE)
+                    # Remove tags restantes
+                    txt = _re.sub(r"<[^>]+>", " ", txt)
+                    # Colapsa espaços múltiplos
+                    txt = _re.sub(r"\s+", " ", txt).strip()
+                    return txt or "—"
 
                 for e in exames:
                     data_rows.append([

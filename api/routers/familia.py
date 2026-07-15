@@ -6,6 +6,16 @@ from collections import defaultdict
 import calendar
 import json
 import os
+import re
+
+
+def _limpar_html(txt: str) -> str:
+    if not txt:
+        return ""
+    txt = re.sub(r"<style[^>]*>.*?</style>", "", txt, flags=re.DOTALL | re.IGNORECASE)
+    txt = re.sub(r"<head[^>]*>.*?</head>", "", txt, flags=re.DOTALL | re.IGNORECASE)
+    txt = re.sub(r"<script[^>]*>.*?</script>", "", txt, flags=re.DOTALL | re.IGNORECASE)
+    return txt.strip()
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -102,7 +112,7 @@ def _build_mes_eventos(paciente_id: int, ano: int, mes: int, db: Session) -> dic
             "id": e.id, "tipo": e.tipo_exame.nome if e.tipo_exame else "Exame",
             "local": e.local.nome if e.local else "",
             "status": e.status.value, "hora": e.data_hora.strftime("%H:%M"),
-            "resultado": e.resultado or "",
+            "resultado": _limpar_html(e.resultado),
         })
 
     for p in prescricoes:
@@ -531,7 +541,7 @@ def detalhe_semana_exames(seg_str: str, token: str, db: Session = Depends(get_db
             "medico": e.medico.nome if e.medico else "",
             "status": e.status.value,
             "observacoes": e.observacoes or "",
-            "resultado": e.resultado or "",
+            "resultado": _limpar_html(e.resultado),
             "anexos": anexos,
         })
 
