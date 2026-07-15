@@ -12,3 +12,4 @@ bcrypt==5.0.0
 reportlab==5.0.0
 cloudinary
 httpx
+supabase

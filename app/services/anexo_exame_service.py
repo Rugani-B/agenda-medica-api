@@ -73,11 +73,15 @@ class AnexoExameService:
 
         nome_arquivo = os.path.basename(caminho_local)
 
-        # Upload para Cloudinary → URL pública
+        # Upload para nuvem → URL pública
+        ext = os.path.splitext(nome_arquivo)[1].lower()
         try:
-            url = upload_anexo(caminho_local, paciente_id, nome_arquivo)
+            if ext == ".pdf":
+                from app.services.supabase_service import upload_pdf
+                url = upload_pdf(caminho_local, paciente_id, nome_arquivo)
+            else:
+                url = upload_anexo(caminho_local, paciente_id, nome_arquivo)
         except Exception:
-            # Fallback: salva caminho local se Cloudinary falhar
             url = caminho_local
 
         dados = {
