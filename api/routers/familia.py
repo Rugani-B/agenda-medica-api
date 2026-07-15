@@ -556,30 +556,26 @@ def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
 
     caminho = anexo.caminho or ""
 
-    # URL do Cloudinary → baixa via API autenticada e serve ao cliente
+    # URL do Cloudinary → gera URL de download autenticada e redireciona
     if caminho.startswith("http"):
-        import httpx, mimetypes, os
-        nome = anexo.nome or "documento"
-        mt, _ = mimetypes.guess_type(nome)
-        mt = mt or "application/octet-stream"
-        try:
-            # Cloudinary aceita download autenticado passando api_key/api_secret como query params
-            api_key    = os.getenv("CLOUDINARY_API_KEY", "")
-            api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
-            r = httpx.get(caminho, auth=(api_key, api_secret),
-                          timeout=30, follow_redirects=True)
-            if r.status_code == 401:
-                # Tenta sem auth (caso seja público)
-                r = httpx.get(caminho, timeout=30, follow_redirects=True)
-            r.raise_for_status()
-            from fastapi.responses import Response
-            return Response(
-                content=r.content,
-                media_type=mt,
-                headers={"Content-Disposition": f'attachment; filename="{nome}"'},
-            )
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Erro ao buscar arquivo: {e}")
+        import cloudinary, cloudinary.utils, os
+        cloudinary.config(
+            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+            api_key=os.getenv("CLOUDINARY_API_KEY"),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+            secure=True,
+        )
+        # Extrai public_id da URL armazenada
+        parte = caminho.split("/upload/")[-1]
+        if parte.startswith("v") and "/" in parte:
+            parte = parte.split("/", 1)[1]
+        public_id = parte  # ex: agenda_medica/paciente_6/arquivo.pdf
+        ext = public_id.rsplit(".", 1)[-1] if "." in public_id else "pdf"
+
+        download_url = cloudinary.utils.private_download_url(
+            public_id, ext, resource_type="raw", attachment=True
+        )
+        return Redirect(url=download_url, status_code=302)
 
     # Fallback: arquivo local (só funciona em ambiente local)
     import os
