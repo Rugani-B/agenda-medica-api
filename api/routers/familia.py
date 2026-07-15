@@ -570,10 +570,10 @@ def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
         if parte.startswith("v") and "/" in parte:
             parte = parte.split("/", 1)[1]
         public_id = parte  # ex: agenda_medica/paciente_6/arquivo.pdf
-        ext = public_id.rsplit(".", 1)[-1] if "." in public_id else "pdf"
 
+        # Para raw resources o public_id já inclui a extensão — não passar format
         download_url = cloudinary.utils.private_download_url(
-            public_id, ext, resource_type="raw", attachment=True
+            public_id, "", resource_type="raw", attachment=True
         )
         return Redirect(url=download_url, status_code=302)
 
