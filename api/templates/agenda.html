@@ -27,7 +27,6 @@
       <span class="relatorio-titulo">📄 Relatório PDF</span>
       <form class="relatorio-form" id="formRelatorio"
             action="/familia/relatorio" method="get" target="_blank">
-        <input type="hidden" name="token" value="{{ token }}">
         <input type="hidden" name="responsavel_id" value="{{ responsavel.id }}">
         <label class="relatorio-label">De
           <input type="date" name="inicio" id="relInicio" class="relatorio-input">
@@ -90,9 +89,9 @@
 
     <!-- Navegação do mês -->
     <div class="cal-nav">
-      <a href="/familia/?token={{ token }}&ano={{ ano_ant }}&mes={{ mes_ant }}" class="cal-nav-btn">◀</a>
+      <a href="/familia/?ano={{ ano_ant }}&mes={{ mes_ant }}" class="cal-nav-btn">◀</a>
       <span class="cal-mes-titulo">{{ mes_nome }} {{ ano }}</span>
-      <a href="/familia/?token={{ token }}&ano={{ ano_prox }}&mes={{ mes_prox }}" class="cal-nav-btn">▶</a>
+      <a href="/familia/?ano={{ ano_prox }}&mes={{ mes_prox }}" class="cal-nav-btn">▶</a>
     </div>
 
     <!-- Calendário mensal -->
@@ -183,7 +182,7 @@
 <script>
 const EVENTOS = {{ eventos_json|safe }};
 const ANUAL   = {{ anual_json|safe }};
-const TOKEN   = "{{ token }}";
+const TOKEN   = "";
 const HOJE    = "{{ hoje }}";
 
 // ── Eventos no calendário mensal ──
@@ -225,7 +224,6 @@ function mostrarDia(dia) {
       ${c.observacoes ? `<div class="det-obs">${c.observacoes}</div>` : ''}
       ${!['realizada','cancelada'].includes(c.status) ? `
       <form method="post" action="/familia/consulta/${c.id}/confirmar">
-        <input type="hidden" name="token" value="${TOKEN}">
         <button class="btn-acao">✓ Confirmar realização</button>
       </form>` : ''}
     </div>`;
@@ -249,8 +247,7 @@ function mostrarDia(dia) {
       ? `<div class="adesao-ok">✓ Adesão: <strong>${t.adesao}</strong></div>`
       : `<div class="adesao-pend">⚠ Adesão não registrada</div>
          <form method="post" action="/familia/adesao/${t.prescricao_id}/registrar">
-           <input type="hidden" name="token" value="${TOKEN}">
-           <div class="niveis-inline">
+            <div class="niveis-inline">
              ${["nenhuma","baixa","parcial","boa","total"].map(n =>
                `<label><input type="radio" name="nivel" value="${n}" required>${n}</label>`
              ).join("")}
@@ -426,7 +423,6 @@ function abrirDetalheTrat(s, tdClicado) {
       <div class="trat-det-row">
         <span class="trat-nivel-label" style="color:${cor}">▸ ${nivelLabel}</span>
         <form method="post" action="/familia/adesao/${p.id}/registrar" class="trat-det-form">
-          <input type="hidden" name="token" value="${TOKEN}">
           <input type="hidden" name="semana_override" value="${s.seg}">
           <select name="nivel" class="trat-select">
             ${["nenhuma","baixa","parcial","boa","total"].map(n =>
@@ -456,14 +452,14 @@ function buildLista(containerId, itens, tipo) {
   el.innerHTML = itens.map(item => {
     const cor = statusCor(item.status);
     if (tipo === 'c') {
-      return `<div class="lista-item lista-item-c" onclick="abrirModal('/familia/consulta/${item.id}/detalhe?token=${TOKEN}')">
+      return `<div class="lista-item lista-item-c" onclick="abrirModal('/familia/consulta/${item.id}/detalhe')">
         <span class="lista-data">${item.data}</span>
         <span class="lista-status" style="color:${cor}">${item.status}</span>
         <span class="lista-nome">${item.especialidade || item.medico || 'Consulta'}</span>
         <span class="lista-medico">${item.medico && item.especialidade ? 'Dr(a). '+item.medico : ''}</span>
       </div>`;
     } else {
-      return `<div class="lista-item lista-item-e" onclick="abrirModal('/familia/semana-exames/${item.seg}?token=${TOKEN}')">
+      return `<div class="lista-item lista-item-e" onclick="abrirModal('/familia/semana-exames/${item.seg}')">
         <span class="lista-data">${item.data}</span>
         <span class="lista-status" style="color:${cor}">${item.status}</span>
         <span class="lista-nome">${item.tipo}</span>
@@ -499,7 +495,6 @@ const LISTA_T = ANUAL.lista_tratamentos || [];
       adesaoHtml = `<div class="lst-trat-adesao">
         ${barra}
         <form method="post" action="/familia/adesao/${p.id}/registrar" class="trat-det-form">
-          <input type="hidden" name="token" value="${TOKEN}">
           <input type="hidden" name="semana_override" value="${p.seg_atual}">
           <select name="nivel" class="trat-select">
             ${["nenhuma","baixa","parcial","boa","total"].map(n =>
@@ -513,7 +508,6 @@ const LISTA_T = ANUAL.lista_tratamentos || [];
       adesaoHtml = `<div class="lst-trat-adesao lst-trat-pend">
         <span>⚠ Semana atual sem registro</span>
         <form method="post" action="/familia/adesao/${p.id}/registrar" class="trat-det-form">
-          <input type="hidden" name="token" value="${TOKEN}">
           <input type="hidden" name="semana_override" value="${p.seg_atual}">
           <select name="nivel" class="trat-select">
             ${["nenhuma","baixa","parcial","boa","total"].map(n =>
@@ -583,8 +577,8 @@ function toggleModoGlobal() {
   btn.textContent = emLista ? '📋 Lista' : '📅 Calendário';
 }
 
-buildAnual("table-consultas", ANUAL.consultas, "cls-c", seg => abrirModal(`/familia/semana/${seg}?token=${TOKEN}`));
-buildAnual("table-exames",    ANUAL.exames,    "cls-e", seg => abrirModal(`/familia/semana-exames/${seg}?token=${TOKEN}`));
+buildAnual("table-consultas", ANUAL.consultas, "cls-c", seg => abrirModal(`/familia/semana/${seg}`));
+buildAnual("table-exames",    ANUAL.exames,    "cls-e", seg => abrirModal(`/familia/semana-exames/${seg}`));
 buildAnualTrat("table-tratamentos", ANUAL.tratamentos);
 
 function abrirModal(url) {
@@ -600,7 +594,7 @@ function abrirModal(url) {
 }
 
 function abrirModalSemana(seg) {
-  abrirModal(`/familia/semana/${seg}?token=${TOKEN}`);
+  abrirModal(`/familia/semana/${seg}`);
 }
 
 function fecharModal() {

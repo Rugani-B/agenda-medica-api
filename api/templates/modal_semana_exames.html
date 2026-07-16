@@ -44,7 +44,7 @@
     <div class="modal-secao-titulo">📎 Arquivos anexos</div>
     <div class="modal-anexos">
       {% for a in e.anexos %}
-      <a class="modal-anexo" href="/familia/anexo/{{ a.id }}?token={{ token }}" target="_blank" title="Abrir {{ a.nome }}">
+      <a class="modal-anexo" href="/familia/anexo/{{ a.id }}" target="_blank" title="Abrir {{ a.nome }}">
         <span class="modal-anexo-icone">
           {% if a.ext == 'pdf' %}📕
           {% elif a.ext in ['jpg','jpeg','png','gif','bmp'] %}🖼️

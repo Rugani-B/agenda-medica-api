@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, Form, Query, Request, Response, Cookie
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
@@ -18,6 +18,17 @@ def _limpar_html(txt: str) -> str:
     return txt.strip()
 
 from jinja2 import Environment, FileSystemLoader
+
+_COOKIE_NAME = "session"
+_COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 dias
+
+
+def get_token(
+    request: Request,
+    token: str = Query(default=None),
+    session: str = Cookie(default=None),
+) -> str | None:
+    return token or session
 
 from api.database import get_db
 from api.auth import verificar_token
@@ -46,7 +57,9 @@ def _render(name: str, context: dict):
     return HTMLResponse(t.render(**context), media_type="text/html; charset=utf-8")
 
 
-def _get_responsavel(token: str, db: Session) -> Responsavel:
+def _get_responsavel(token: str | None, db: Session) -> Responsavel:
+    if not token:
+        raise HTTPException(status_code=403, detail="Token inválido")
     for r in db.query(Responsavel).all():
         if verificar_token(token, r.id):
             return r
@@ -358,8 +371,49 @@ def _resumo_semana(paciente_id: int, db: Session) -> dict:
     }
 
 
+@router.get("/login", response_class=HTMLResponse)
+def login_page():
+    html = """<!doctype html><html><head><meta charset="utf-8">
+    <title>Acesso</title>
+    <style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f0f4f8}
+    form{background:white;padding:2rem;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15);min-width:300px}
+    h2{margin:0 0 1.5rem;color:#1a5276}input{width:100%;padding:.6rem;margin:.5rem 0 1rem;box-sizing:border-box;border:1px solid #ccc;border-radius:4px}
+    button{width:100%;padding:.7rem;background:#1a5276;color:white;border:none;border-radius:4px;cursor:pointer;font-size:1rem}</style>
+    </head><body>
+    <form method="post" action="/familia/login">
+      <h2>Agenda Médica</h2>
+      <label>Token de acesso</label>
+      <input type="password" name="token" required autofocus>
+      <button type="submit">Entrar</button>
+    </form></body></html>"""
+    return HTMLResponse(html)
+
+
+@router.post("/login")
+def login(token: str = Form(...), db: Session = Depends(get_db)):
+    _get_responsavel(token, db)  # valida — lança 403 se inválido
+    resp = RedirectResponse(url="/familia/", status_code=303)
+    resp.set_cookie(_COOKIE_NAME, token, httponly=True, secure=True,
+                    samesite="lax", max_age=_COOKIE_MAX_AGE)
+    return resp
+
+
+@router.get("/logout")
+def logout():
+    resp = RedirectResponse(url="/familia/login", status_code=303)
+    resp.delete_cookie(_COOKIE_NAME)
+    return resp
+
+
 @router.get("/", response_class=HTMLResponse)
-def agenda(token: str, ano: int = None, mes: int = None, db: Session = Depends(get_db)):
+def agenda(
+    request: Request,
+    response: Response,
+    token: str = Depends(get_token),
+    ano: int = None,
+    mes: int = None,
+    db: Session = Depends(get_db),
+):
     responsavel = _get_responsavel(token, db)
     paciente = db.query(Paciente).filter_by(id=responsavel.paciente_id).first()
 
@@ -372,6 +426,16 @@ def agenda(token: str, ano: int = None, mes: int = None, db: Session = Depends(g
     ano_ant = ano if mes > 1 else ano - 1
     mes_prox = mes + 1 if mes < 12 else 1
     ano_prox = ano if mes < 12 else ano + 1
+
+    # Se token veio na URL, define cookie e redireciona para URL limpa
+    if request.query_params.get("token"):
+        redir = RedirectResponse(
+            url=f"/familia/?ano={ano}&mes={mes}" if (ano or mes) else "/familia/",
+            status_code=303,
+        )
+        redir.set_cookie(_COOKIE_NAME, token, httponly=True, secure=True,
+                         samesite="lax", max_age=_COOKIE_MAX_AGE)
+        return redir
 
     import time
     return _render("agenda.html", {
@@ -392,7 +456,7 @@ def agenda(token: str, ano: int = None, mes: int = None, db: Session = Depends(g
 
 
 @router.get("/semana/{seg_str}", response_class=HTMLResponse)
-def detalhe_semana(seg_str: str, token: str, db: Session = Depends(get_db)):
+def detalhe_semana(seg_str: str, token: str = Depends(get_token), db: Session = Depends(get_db)):
     from datetime import datetime as dt
     responsavel = _get_responsavel(token, db)
     seg = dt.strptime(seg_str, "%Y-%m-%d").date()
@@ -468,7 +532,7 @@ def detalhe_semana(seg_str: str, token: str, db: Session = Depends(get_db)):
 
 
 @router.get("/consulta/{consulta_id}/detalhe", response_class=HTMLResponse)
-def detalhe_consulta(consulta_id: int, token: str, db: Session = Depends(get_db)):
+def detalhe_consulta(consulta_id: int, token: str = Depends(get_token), db: Session = Depends(get_db)):
     responsavel = _get_responsavel(token, db)
     c = db.query(Consulta).filter_by(id=consulta_id).first()
     if not c or c.paciente_id != responsavel.paciente_id:
@@ -509,7 +573,7 @@ def detalhe_consulta(consulta_id: int, token: str, db: Session = Depends(get_db)
 
 
 @router.get("/semana-exames/{seg_str}", response_class=HTMLResponse)
-def detalhe_semana_exames(seg_str: str, token: str, db: Session = Depends(get_db)):
+def detalhe_semana_exames(seg_str: str, token: str = Depends(get_token), db: Session = Depends(get_db)):
     from datetime import datetime as dt
     responsavel = _get_responsavel(token, db)
     seg = dt.strptime(seg_str, "%Y-%m-%d").date()
@@ -554,7 +618,7 @@ def detalhe_semana_exames(seg_str: str, token: str, db: Session = Depends(get_db
 
 
 @router.get("/anexo/{anexo_id}")
-def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
+def servir_anexo(anexo_id: int, token: str = Depends(get_token), db: Session = Depends(get_db)):
     from fastapi.responses import RedirectResponse as Redirect
     responsavel = _get_responsavel(token, db)
     anexo = db.query(AnexoExame).filter_by(id=anexo_id).first()
@@ -582,7 +646,8 @@ def servir_anexo(anexo_id: int, token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/consulta/{consulta_id}/confirmar", response_class=RedirectResponse)
-def confirmar_consulta(consulta_id: int, token: str = Form(...), db: Session = Depends(get_db)):
+def confirmar_consulta(consulta_id: int, request: Request, token: str = Form(default=None), session: str = Cookie(default=None), db: Session = Depends(get_db)):
+    token = token or session
     responsavel = _get_responsavel(token, db)
     consulta = db.query(Consulta).filter_by(id=consulta_id).first()
     if not consulta or consulta.paciente_id != responsavel.paciente_id:
@@ -600,18 +665,21 @@ def confirmar_consulta(consulta_id: int, token: str = Form(...), db: Session = D
     conf.respondido = responsavel.nome
     conf.canal = "web"
     db.commit()
-    return RedirectResponse(url=f"/familia/?token={token}", status_code=303)
+    return RedirectResponse(url="/familia/", status_code=303)
 
 
 @router.post("/adesao/{prescricao_id}/registrar", response_class=RedirectResponse)
 def registrar_adesao(
     prescricao_id: int,
-    token: str = Form(...),
+    request: Request,
+    token: str = Form(default=None),
+    session: str = Cookie(default=None),
     nivel: str = Form(...),
     observacoes: str = Form(""),
     semana_override: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    token = token or session
     responsavel = _get_responsavel(token, db)
     prescricao = db.query(Prescricao).filter_by(id=prescricao_id).first()
     if not prescricao or prescricao.paciente_id != responsavel.paciente_id:
@@ -633,13 +701,13 @@ def registrar_adesao(
             nivel=NivelAdesao[nivel], observacoes=observacoes,
         ))
     db.commit()
-    return RedirectResponse(url=f"/familia/?token={token}", status_code=303)
+    return RedirectResponse(url="/familia/", status_code=303)
 
 
 @router.get("/relatorio")
 def baixar_relatorio(
-    token: str,
-    responsavel_id: int,
+    token: str = Depends(get_token),
+    responsavel_id: int = Query(...),
     inicio: str = Query(default=None),
     fim: str = Query(default=None),
     db: Session = Depends(get_db),

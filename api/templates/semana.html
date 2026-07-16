@@ -16,7 +16,6 @@
       {% endif %}
       {% if c.status.value not in ['realizada', 'cancelada'] %}
       <form method="post" action="/familia/consulta/{{ c.id }}/confirmar">
-        <input type="hidden" name="token" value="{{ token }}">
         <button type="submit" class="btn-confirmar">✓ Confirmar realização</button>
       </form>
       {% endif %}

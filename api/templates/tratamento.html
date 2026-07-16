@@ -27,7 +27,6 @@
       </div>
     {% else %}
       <form method="post" action="/familia/adesao/{{ p.id }}/registrar">
-        <input type="hidden" name="token" value="{{ token }}">
         <label>Como foi a adesão esta semana?</label>
         <div class="niveis">
           {% for n in niveis %}
