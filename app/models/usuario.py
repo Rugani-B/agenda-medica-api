@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, LargeBinary
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, LargeBinary, ForeignKey
 from sqlalchemy.sql import func
 from app.database.base import Base
 import enum
@@ -9,6 +9,8 @@ class PerfilUsuario(enum.Enum):
     admin       = "admin"
     assistente  = "assistente"   # acesso desktop + web, todos os pacientes vinculados
     familiar    = "familiar"     # acesso web apenas, leitura + adesão + confirmação
+    medico      = "medico"       # acesso web, vê seus pacientes, cria prescrições e pedidos
+    paciente    = "paciente"     # acesso web apenas, leitura + adesão + confirmação (próprio)
     enfermeira  = "enfermeira"   # legado → tratado como assistente
     secretaria  = "secretaria"   # legado → tratado como assistente
     operador    = "operador"     # legado → tratado como assistente
@@ -23,6 +25,7 @@ class Usuario(Base):
     senha_hash      =   Column(LargeBinary, nullable=False)
     perfil          =   Column(Enum(PerfilUsuario), nullable=False)
     ativo           =   Column(Boolean, default=True)
+    medico_id       =   Column(Integer, ForeignKey("medicos.id", ondelete="SET NULL"), nullable=True)
     criado_em       =   Column(DateTime(timezone=True), server_default=func.now())
 
 

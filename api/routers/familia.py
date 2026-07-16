@@ -59,12 +59,15 @@ def _verificar_sessao(valor: str | None) -> int | None:
     return None
 
 
+_PERFIS_PORTAL_FAMILIA = {PerfilUsuario.familiar, PerfilUsuario.paciente}
+
+
 def _get_usuario(session: str | None, db: Session) -> Usuario | None:
     uid = _verificar_sessao(session)
     if not uid:
         return None
     u = db.query(Usuario).filter_by(id=uid, ativo=True).first()
-    if not u or u.perfil != PerfilUsuario.familiar:
+    if not u or u.perfil not in _PERFIS_PORTAL_FAMILIA:
         return None
     return u
 
@@ -387,7 +390,7 @@ def login_page(erro: str = Query(default=None)):
     </style></head><body>
     <form method="post" action="/familia/login">
       <h2>Agenda Médica</h2>
-      <p class="sub">Acesso para familiares e responsáveis</p>
+      <p class="sub">Acesso para pacientes, familiares e responsáveis</p>
       {msg_erro}
       <label>E-mail</label>
       <input type="email" name="email" required autofocus autocomplete="username">
@@ -409,7 +412,7 @@ def login(
     if not u or not u.verificar_senha(senha):
         return RedirectResponse(url="/familia/login?erro=credenciais", status_code=303)
 
-    if u.perfil != PerfilUsuario.familiar:
+    if u.perfil not in _PERFIS_PORTAL_FAMILIA:
         return RedirectResponse(url="/familia/login?erro=acesso", status_code=303)
 
     paciente_id = _get_paciente_id(u.id, db)

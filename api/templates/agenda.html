@@ -13,7 +13,6 @@
   <div class="header-inner">
     <span class="titulo">🏥 <span class="titulo-prefixo">Agenda de</span> {{ paciente.nome }}</span>
     <span class="subtitulo">Olá, {{ responsavel.nome }}</span>
-    <button class="btn-tema" id="btnTema" onclick="toggleTema()" title="Alternar tema">🎨</button>
   </div>
 </header>
 
@@ -636,17 +635,6 @@ if (EVENTOS[HOJE]) mostrarDia(HOJE);
   document.getElementById('relFim').value    = fmt(hoje);
 })();
 
-function toggleTema() {
-  const cinza = document.body.classList.toggle('tema-cinza');
-  localStorage.setItem('tema', cinza ? 'cinza' : 'padrao');
-  document.getElementById('btnTema').textContent = cinza ? '🌈' : '🎨';
-}
-(function() {
-  if (localStorage.getItem('tema') === 'cinza') {
-    document.body.classList.add('tema-cinza');
-    document.getElementById('btnTema').textContent = '🌈';
-  }
-})();
 </script>
 </body>
 </html>

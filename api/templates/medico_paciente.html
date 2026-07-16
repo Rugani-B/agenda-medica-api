@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ paciente.nome }} — Portal Médico</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#eaf4fb;min-height:100vh}
+header{background:#0d6e8a;color:white;padding:.85rem 1.5rem;display:flex;align-items:center;gap:1rem}
+header a.back{color:white;text-decoration:none;font-size:1.2rem;opacity:.8}
+header a.back:hover{opacity:1}
+header h1{font-size:1.05rem;font-weight:600;flex:1}
+.logout{color:white;text-decoration:none;font-size:.82rem;opacity:.75}
+.logout:hover{opacity:1}
+main{max-width:1000px;margin:1.5rem auto;padding:0 1rem}
+.paciente-banner{background:white;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.25rem;
+                 box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;align-items:center;gap:1rem}
+.paciente-banner .nome{font-size:1.1rem;font-weight:700;color:#1a1a2e}
+.paciente-banner .meta{font-size:.83rem;color:#666}
+.badge-idade{background:#0d6e8a;color:white;border-radius:50%;width:44px;height:44px;
+             display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0}
+.ok-msg{background:#d4edda;color:#155724;padding:.6rem 1rem;border-radius:6px;
+        margin-bottom:1rem;font-size:.88rem}
+.tabs{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
+.tab-btn{padding:.5rem 1.1rem;border:none;border-radius:20px;cursor:pointer;font-size:.88rem;
+         background:#dee8f0;color:#444;transition:.15s}
+.tab-btn.active{background:#0d6e8a;color:white}
+.section{display:none}
+.section.active{display:block}
+/* cards */
+.list{display:flex;flex-direction:column;gap:.6rem}
+.item{background:white;border-radius:7px;padding:.9rem 1.1rem;
+      box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:3px solid #0d6e8a}
+.item .titulo{font-weight:600;font-size:.93rem;margin-bottom:.25rem}
+.item .det{font-size:.8rem;color:#666;margin-top:.15rem}
+.status{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 7px;
+        border-radius:10px;margin-left:.4rem}
+.s-agendada{background:#d6eaf8;color:#1a5276}
+.s-realizada{background:#d5f5e3;color:#145a32}
+.s-cancelada{background:#fadbd8;color:#922b21}
+.s-solicitado{background:#fef9e7;color:#7d6608}
+.s-agendado{background:#d6eaf8;color:#1a5276}
+.s-realizado{background:#d5f5e3;color:#145a32}
+.s-cancelado{background:#fadbd8;color:#922b21}
+/* forms */
+.form-card{background:white;border-radius:8px;padding:1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:1rem}
+.form-card h3{color:#0d6e8a;font-size:1rem;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid #e0eaf0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+.form-row.full{grid-template-columns:1fr}
+label{font-size:.82rem;color:#555;display:block;margin-bottom:3px}
+select,input,textarea{width:100%;padding:.5rem .7rem;border:1px solid #ccc;border-radius:5px;font-size:.88rem}
+select:focus,input:focus,textarea:focus{outline:none;border-color:#0d6e8a}
+textarea{resize:vertical;min-height:60px}
+.btn{padding:.5rem 1.1rem;border:none;border-radius:5px;cursor:pointer;font-size:.87rem;font-weight:600}
+.btn-primary{background:#0d6e8a;color:white}
+.btn-primary:hover{background:#0a5870}
+.btn-add{background:#e8f5fb;color:#0d6e8a;border:1px dashed #0d6e8a;margin-top:.5rem}
+.btn-add:hover{background:#d0ecf7}
+.btn-del{background:none;border:none;color:#c0392b;cursor:pointer;font-size:.85rem;padding:0 .3rem}
+.med-row{display:flex;gap:.5rem;align-items:flex-start;margin-bottom:.4rem}
+.med-row select{flex:2}
+.med-row input{flex:1}
+.med-row .btn-del{margin-top:.3rem}
+.empty-msg{color:#999;font-size:.85rem;padding:.5rem 0}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="/medico/">←</a>
+  <h1>{{ paciente.nome }}</h1>
+  <a href="/medico/logout" class="logout">Sair →</a>
+</header>
+
+<main>
+  {% if ok == 'prescricao' %}
+  <div class="ok-msg">✅ Prescrição criada com sucesso.</div>
+  {% elif ok == 'pedido' %}
+  <div class="ok-msg">✅ Pedido de exame criado com sucesso.</div>
+  {% endif %}
+
+  <div class="paciente-banner">
+    <div class="badge-idade">{{ paciente.idade }}</div>
+    <div>
+      <div class="nome">{{ paciente.nome }}</div>
+      <div class="meta">
+        {% if paciente.data_nascimento %}Nascimento: {{ paciente.data_nascimento.strftime('%d/%m/%Y') }}{% endif %}
+        {% if paciente.telefone %} · {{ paciente.telefone }}{% endif %}
+        {% if paciente.email %} · {{ paciente.email }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="mostrar('consultas',this)">📅 Consultas ({{ consultas|length }})</button>
+    <button class="tab-btn" onclick="mostrar('prescricoes',this)">💊 Prescrições ({{ prescricoes|length }})</button>
+    <button class="tab-btn" onclick="mostrar('pedidos',this)">📋 Pedidos de Exame ({{ pedidos|length }})</button>
+    <button class="tab-btn" onclick="mostrar('exames',this)">🧪 Exames</button>
+    <button class="tab-btn" onclick="mostrar('nova-prescricao',this)">+ Nova Prescrição</button>
+    <button class="tab-btn" onclick="mostrar('novo-pedido',this)">+ Novo Pedido</button>
+  </div>
+
+  <!-- Consultas -->
+  <div id="consultas" class="section active">
+    {% if consultas %}
+    <div class="list">
+      {% for c in consultas %}
+      <div class="item">
+        <div class="titulo">
+          {{ c.data_hora.strftime('%d/%m/%Y %H:%M') }}
+          <span class="status s-{{ c.status.value }}">{{ c.status.value }}</span>
+        </div>
+        {% if c.observacoes %}<div class="det">{{ c.observacoes }}</div>{% endif %}
+        <div class="det">ID #{{ c.id }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-msg">Nenhuma consulta registrada.</div>
+    {% endif %}
+  </div>
+
+  <!-- Prescrições -->
+  <div id="prescricoes" class="section">
+    {% if prescricoes %}
+    <div class="list">
+      {% for p in prescricoes %}
+      <div class="item">
+        <div class="titulo">
+          Prescrição #{{ p.id }}
+          {% if p.semana_inicio and p.semana_fim %}
+          · {{ p.semana_inicio.strftime('%d/%m/%Y') }} → {{ p.semana_fim.strftime('%d/%m/%Y') }}
+          {% endif %}
+        </div>
+        {% for item in p.itens %}
+        <div class="det">💊 {{ item.medicamento.nome }}
+          {% if item.dose %} — {{ item.dose }}{% endif %}
+          {% if item.frequencia %} ({{ item.frequencia }}){% endif %}
+        </div>
+        {% endfor %}
+        {% if p.observacoes %}<div class="det">📝 {{ p.observacoes }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-msg">Nenhuma prescrição registrada.</div>
+    {% endif %}
+  </div>
+
+  <!-- Pedidos de Exame -->
+  <div id="pedidos" class="section">
+    {% if pedidos %}
+    <div class="list">
+      {% for p in pedidos %}
+      <div class="item">
+        <div class="titulo">
+          {{ p.tipo_exame.nome if p.tipo_exame else 'Exame' }}
+          <span class="status s-{{ p.status.value }}">{{ p.status.value }}</span>
+          {% if p.urgente %}<span class="status" style="background:#fef0e7;color:#a04000">⚠️ urgente</span>{% endif %}
+        </div>
+        {% if p.observacoes %}<div class="det">{{ p.observacoes }}</div>{% endif %}
+        <div class="det">Criado em {{ p.criado_em.strftime('%d/%m/%Y') if p.criado_em else '' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-msg">Nenhum pedido de exame registrado.</div>
+    {% endif %}
+  </div>
+
+  <!-- Exames -->
+  <div id="exames" class="section">
+    {% if exames %}
+    <div class="list">
+      {% for e in exames %}
+      <div class="item">
+        <div class="titulo">
+          {{ e.tipo_exame.nome if e.tipo_exame else 'Exame' }}
+          <span class="status s-{{ e.status.value }}">{{ e.status.value }}</span>
+        </div>
+        <div class="det">{{ e.data_hora.strftime('%d/%m/%Y %H:%M') if e.data_hora else '' }}
+          {% if e.local %} · {{ e.local.nome }}{% endif %}
+        </div>
+        {% if e.resultado %}<div class="det">Resultado disponível</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-msg">Nenhum exame registrado.</div>
+    {% endif %}
+  </div>
+
+  <!-- Nova Prescrição -->
+  <div id="nova-prescricao" class="section">
+    <div class="form-card">
+      <h3>💊 Nova Prescrição</h3>
+      <form method="post" action="/medico/paciente/{{ paciente.id }}/prescricao" id="form-presc">
+        <div class="form-row">
+          <div>
+            <label>Consulta de origem *</label>
+            <select name="consulta_id" required>
+              <option value="">Selecione...</option>
+              {% for c in consultas %}
+              <option value="{{ c.id }}">{{ c.data_hora.strftime('%d/%m/%Y %H:%M') }} — #{{ c.id }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div></div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Início do tratamento (semana) *</label>
+            <input type="date" name="semana_inicio" required>
+          </div>
+          <div>
+            <label>Fim do tratamento (semana) *</label>
+            <input type="date" name="semana_fim" required>
+          </div>
+        </div>
+
+        <label style="margin-bottom:.5rem;display:block">Medicamentos</label>
+        <div id="meds-container">
+          <div class="med-row">
+            <select name="med_ids">
+              <option value="">Medicamento...</option>
+              {% for m in medicamentos %}
+              <option value="{{ m.id }}">{{ m.nome }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="doses" placeholder="Dose (ex: 500mg)">
+            <input type="text" name="freqs" placeholder="Frequência (ex: 8/8h)">
+            <button type="button" class="btn-del" onclick="removerMed(this)">✕</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-add" onclick="adicionarMed()">+ Medicamento</button>
+
+        <div class="form-row full" style="margin-top:.75rem">
+          <div>
+            <label>Observações</label>
+            <textarea name="observacoes" placeholder="Instruções gerais, cuidados..."></textarea>
+          </div>
+        </div>
+        <div style="margin-top:.75rem">
+          <button type="submit" class="btn btn-primary">Salvar Prescrição</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Novo Pedido de Exame -->
+  <div id="novo-pedido" class="section">
+    <div class="form-card">
+      <h3>📋 Novo Pedido de Exame</h3>
+      <form method="post" action="/medico/paciente/{{ paciente.id }}/pedido">
+        <div class="form-row">
+          <div>
+            <label>Tipo de Exame *</label>
+            <select name="tipo_exame_id" required>
+              <option value="">Selecione...</option>
+              {% for t in tipos_exame %}
+              <option value="{{ t.id }}">{{ t.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label>Consulta relacionada (opcional)</label>
+            <select name="consulta_id">
+              <option value="">Nenhuma</option>
+              {% for c in consultas %}
+              <option value="{{ c.id }}">{{ c.data_hora.strftime('%d/%m/%Y %H:%M') }} — #{{ c.id }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Urgente?</label>
+            <select name="urgente">
+              <option value="0">Não</option>
+              <option value="1">Sim — urgente</option>
+            </select>
+          </div>
+          <div></div>
+        </div>
+        <div class="form-row full">
+          <div>
+            <label>Observações / Justificativa</label>
+            <textarea name="observacoes" placeholder="Motivo, contexto clínico..."></textarea>
+          </div>
+        </div>
+        <div style="margin-top:.75rem">
+          <button type="submit" class="btn btn-primary">Criar Pedido</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script>
+function mostrar(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const medTemplate = `<div class="med-row">
+  <select name="med_ids">
+    <option value="">Medicamento...</option>
+    {% for m in medicamentos %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}
+  </select>
+  <input type="text" name="doses" placeholder="Dose (ex: 500mg)">
+  <input type="text" name="freqs" placeholder="Frequência (ex: 8/8h)">
+  <button type="button" class="btn-del" onclick="removerMed(this)">✕</button>
+</div>`;
+
+function adicionarMed() {
+  document.getElementById('meds-container').insertAdjacentHTML('beforeend', medTemplate);
+}
+function removerMed(btn) {
+  const rows = document.querySelectorAll('.med-row');
+  if (rows.length > 1) btn.closest('.med-row').remove();
+}
+
+// Abre aba correta se vier redirect com ?ok=
+const ok = new URLSearchParams(location.search).get('ok');
+if (ok === 'prescricao') mostrar('prescricoes', document.querySelectorAll('.tab-btn')[1]);
+if (ok === 'pedido')     mostrar('pedidos',     document.querySelectorAll('.tab-btn')[2]);
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal Médico — {{ medico.nome }}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#eaf4fb;min-height:100vh}
+header{background:#0d6e8a;color:white;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:1.1rem;font-weight:600}
+header .info{font-size:.82rem;opacity:.85}
+.logout{color:white;text-decoration:none;font-size:.82rem;opacity:.75;margin-left:1rem}
+.logout:hover{opacity:1}
+main{max-width:960px;margin:2rem auto;padding:0 1rem}
+h2{color:#0d6e8a;font-size:1.15rem;margin-bottom:1.1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.card{background:white;border-radius:8px;padding:1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.08);
+      border-left:4px solid #0d6e8a;text-decoration:none;color:inherit;display:block;transition:.15s}
+.card:hover{box-shadow:0 3px 10px rgba(0,0,0,.14);transform:translateY(-1px)}
+.card .nome{font-weight:600;font-size:1rem;color:#1a1a2e;margin-bottom:.35rem}
+.card .meta{font-size:.8rem;color:#666;margin-top:.2rem}
+.card .badge{display:inline-block;background:#e8f5fb;color:#0d6e8a;font-size:.75rem;
+             font-weight:600;padding:2px 8px;border-radius:10px;margin-bottom:.5rem}
+.empty{background:white;padding:2rem;border-radius:8px;text-align:center;color:#888}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🩺 Portal do Médico</h1>
+    <div class="info">Dr(a). {{ medico.nome }}
+      {% if medico.especialidade %} · {{ medico.especialidade.nome }}{% endif %}
+    </div>
+  </div>
+  <a href="/medico/logout" class="logout">Sair →</a>
+</header>
+
+<main>
+  <h2>Seus Pacientes</h2>
+  {% if pacientes %}
+  <div class="grid">
+    {% for p in pacientes %}
+    <a class="card" href="/medico/paciente/{{ p.id }}">
+      <span class="badge">{{ p.idade }} anos</span>
+      <div class="nome">{{ p.nome }}</div>
+      {% if p.proxima_consulta %}
+      <div class="meta">📅 Próxima consulta: {{ p.proxima_consulta }}</div>
+      {% endif %}
+      {% if p.ultima_consulta %}
+      <div class="meta">🕐 Última visita: {{ p.ultima_consulta }}</div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">Nenhum paciente encontrado. Consultas com pacientes aparecerão aqui.</div>
+  {% endif %}
+</main>
+</body>
+</html>

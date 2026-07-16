@@ -21,6 +21,8 @@ from app.ui.tela_pedidos_exame  import TelaPedidosExame
 from app.ui.tela_adesao         import TelAdesao
 from app.ui.tela_pendencias     import TelaPendencias
 from app.ui.tela_responsaveis   import TelaResponsaveis
+from app.ui.tela_usuarios       import TelaUsuarios
+from app.ui.acesso              import eh_admin
 
 
 class TelaPrincipal(QMainWindow):
@@ -63,6 +65,7 @@ class TelaPrincipal(QMainWindow):
         tela_pend.abrir_adesao_prescricao.connect(self._abrir_adesao_prescricao)
         self.stack.addWidget(tela_pend)              # índice 7
         self.stack.addWidget(TelaResponsaveis())     # índice 8
+        self.stack.addWidget(TelaUsuarios())         # índice 9
 
         layout_principal.addWidget(self.stack)
 
@@ -99,6 +102,7 @@ class TelaPrincipal(QMainWindow):
         btn_medicos        = self._criar_btn_menu("👨‍⚕️ Médicos",          2)
         btn_medicamentos   = self._criar_btn_menu("💊 Medicamentos",      4)
         btn_responsaveis   = self._criar_btn_menu("👥 Responsáveis",      8)
+        btn_usuarios       = self._criar_btn_menu("🔑 Usuários",          9)
 
         # Separador visual
         separador = QFrame()
@@ -126,6 +130,8 @@ class TelaPrincipal(QMainWindow):
         layout.addWidget(btn_medicos)
         layout.addWidget(btn_medicamentos)
         layout.addWidget(btn_responsaveis)
+        if eh_admin(self.usuario):
+            layout.addWidget(btn_usuarios)
         layout.addStretch()
 
         # ── Botão de backup ───────────────────────────

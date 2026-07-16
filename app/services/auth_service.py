@@ -46,8 +46,9 @@ class AuthService:
             raise ValueError("E-mail ou senha inválidos.")
 
         from app.models.usuario import PerfilUsuario
-        if usuario.perfil == PerfilUsuario.familiar:
-            raise ValueError("Acesso negado. Familiares acessam apenas pelo portal web.")
+        _apenas_web = {PerfilUsuario.familiar, PerfilUsuario.medico, PerfilUsuario.paciente}
+        if usuario.perfil in _apenas_web:
+            raise ValueError("Acesso negado. Este perfil acessa apenas pelo portal web.")
 
         return usuario
 
