@@ -6,10 +6,12 @@ import bcrypt
 
 
 class PerfilUsuario(enum.Enum):
-    admin       =   "admin"
-    enfermeira  =   "enfermeira"
-    secretaria  =   "secretaria"
-    operador    =   "operador"
+    admin       = "admin"
+    assistente  = "assistente"   # acesso desktop + web, todos os pacientes vinculados
+    familiar    = "familiar"     # acesso web apenas, leitura + adesão + confirmação
+    enfermeira  = "enfermeira"   # legado → tratado como assistente
+    secretaria  = "secretaria"   # legado → tratado como assistente
+    operador    = "operador"     # legado → tratado como assistente
 
 
 class Usuario(Base):

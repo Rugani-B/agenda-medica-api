@@ -45,6 +45,10 @@ class AuthService:
         if not senha_correta:
             raise ValueError("E-mail ou senha inválidos.")
 
+        from app.models.usuario import PerfilUsuario
+        if usuario.perfil == PerfilUsuario.familiar:
+            raise ValueError("Acesso negado. Familiares acessam apenas pelo portal web.")
+
         return usuario
 
     def alterar_senha(self, id: int, senha_atual: str, nova_senha: str) -> Usuario:

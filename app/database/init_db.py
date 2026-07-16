@@ -15,6 +15,7 @@ from app.models.local_exame     import LocalExame
 from app.models.exame           import Exame
 
 from app.models.log             import Log
+from app.models.usuario_paciente import UsuarioPaciente
 
 
 def init_db():
