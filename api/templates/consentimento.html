@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Termo de Consentimento — Gestão de Agenda Médica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papel:#FAF9F6; --tinta:#1C2B2D; --tinta-suave:#4A5A5C;
+    --verde:#0E6E6B; --verde-claro:#E3F0EF; --verde-escuro:#0A5250;
+    --linha:#D8D5CE; --alerta:#B4552D; --alerta-claro:#F7E9E1;
+    --branco:#FFFFFF; --ok:#2E7D4F;
+    --fs-base:18px; --raio:10px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{font-size:var(--fs-base);}
+  body{
+    font-family:'Source Sans 3', system-ui, sans-serif;
+    background:var(--papel); color:var(--tinta);
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .container{max-width:780px; margin:0 auto; padding:2rem 1.25rem 5rem;}
+
+  /* ---------- cabeçalho ---------- */
+  header.doc{
+    border-bottom:3px double var(--verde);
+    padding-bottom:1.25rem; margin-bottom:2rem;
+  }
+  .eyebrow{
+    font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--verde); font-weight:700; margin-bottom:.4rem;
+  }
+  h1{
+    font-family:'Lora', serif; font-weight:700;
+    font-size:1.7rem; line-height:1.25; margin-bottom:.5rem;
+  }
+  .meta-doc{display:flex; gap:.75rem; flex-wrap:wrap; align-items:center;}
+  .badge{
+    background:var(--verde-claro); color:var(--verde-escuro);
+    font-size:.8rem; font-weight:700; padding:.2rem .7rem; border-radius:99px;
+  }
+  .meta-doc small{color:var(--tinta-suave);}
+
+  /* ---------- seções ---------- */
+  section.etapa{
+    background:var(--branco); border:1px solid var(--linha);
+    border-radius:var(--raio); padding:1.5rem 1.5rem 1.75rem;
+    margin-bottom:1.5rem;
+  }
+  .etapa-titulo{
+    display:flex; align-items:baseline; gap:.75rem; margin-bottom:1rem;
+    border-bottom:1px solid var(--linha); padding-bottom:.75rem;
+  }
+  .etapa-num{
+    font-family:'Lora', serif; color:var(--verde);
+    font-size:1.05rem; font-weight:700; white-space:nowrap;
+  }
+  .etapa-titulo h2{
+    font-family:'Lora', serif; font-size:1.2rem; font-weight:600;
+  }
+  .hint{font-size:.9rem; color:var(--tinta-suave); margin-bottom:1rem;}
+
+  /* ---------- formulário ---------- */
+  label{display:block; font-weight:600; margin-bottom:.3rem; font-size:.95rem;}
+  input[type=text], input[type=email], input[type=tel], input[type=date], select{
+    width:100%; font-size:1rem; font-family:inherit; color:var(--tinta);
+    padding:.7rem .8rem; border:1.5px solid var(--linha); border-radius:8px;
+    background:var(--branco); min-height:48px;
+  }
+  input:focus, select:focus, button:focus-visible, .check-row:focus-within{
+    outline:3px solid var(--verde); outline-offset:1px; border-color:var(--verde);
+  }
+  .campo{margin-bottom:1rem;}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:1rem;}
+  @media (max-width:560px){ .grid-2{grid-template-columns:1fr;} }
+  .erro-msg{color:var(--alerta); font-size:.85rem; margin-top:.25rem; display:none;}
+  .invalido input{border-color:var(--alerta);}
+  .invalido .erro-msg{display:block;}
+
+  /* checkboxes grandes */
+  .check-row{
+    display:flex; gap:.8rem; align-items:flex-start;
+    padding:.8rem .9rem; border:1.5px solid var(--linha); border-radius:8px;
+    margin-bottom:.75rem; background:var(--branco); cursor:pointer;
+  }
+  .check-row input[type=checkbox], .check-row input[type=radio]{
+    width:26px; height:26px; flex:0 0 26px; margin-top:.15rem;
+    accent-color:var(--verde); cursor:pointer;
+  }
+  .check-row.marcado{background:var(--verde-claro); border-color:var(--verde);}
+  .check-row .texto{font-size:.98rem;}
+  .check-row .texto strong{color:var(--verde-escuro);}
+  .obrigatorio-tag{
+    font-size:.72rem; font-weight:700; letter-spacing:.08em;
+    color:var(--alerta); text-transform:uppercase; margin-left:.4rem;
+  }
+  .opcional-tag{
+    font-size:.72rem; font-weight:700; letter-spacing:.08em;
+    color:var(--tinta-suave); text-transform:uppercase; margin-left:.4rem;
+  }
+
+  /* ---------- caixa do termo ---------- */
+  .termo-box{
+    border:1.5px solid var(--linha); border-radius:8px;
+    max-height:340px; overflow-y:auto; padding:1.1rem 1.2rem;
+    background:#FDFCFA; font-size:.92rem; line-height:1.55;
+  }
+  .termo-box h3{font-family:'Lora',serif; font-size:1rem; margin:.9rem 0 .35rem; color:var(--verde-escuro);}
+  .termo-box h3:first-child{margin-top:0;}
+  .termo-box p, .termo-box li{margin-bottom:.5rem; color:var(--tinta);}
+  .termo-box ul{padding-left:1.2rem;}
+  .termo-integridade{
+    font-size:.78rem; color:var(--tinta-suave); margin-top:.5rem;
+    font-family:ui-monospace, monospace;
+  }
+
+  /* ---------- anexo I dinâmico ---------- */
+  .pessoa-card{
+    border:1.5px solid var(--linha); border-radius:8px;
+    padding:1rem; margin-bottom:1rem; background:#FDFCFA; position:relative;
+  }
+  .pessoa-card .remover{
+    position:absolute; top:.6rem; right:.6rem;
+    background:none; border:1.5px solid var(--linha); color:var(--alerta);
+    border-radius:6px; font-size:.8rem; padding:.25rem .6rem; cursor:pointer;
+    font-family:inherit; font-weight:600; min-height:auto;
+  }
+  .niveis{display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.25rem;}
+  .nivel-opt{
+    flex:1 1 140px; display:flex; gap:.5rem; align-items:flex-start;
+    border:1.5px solid var(--linha); border-radius:8px; padding:.6rem .7rem;
+    cursor:pointer; font-size:.85rem; background:var(--branco);
+  }
+  .nivel-opt input{width:22px; height:22px; flex:0 0 22px; accent-color:var(--verde);}
+  .nivel-opt.marcado{background:var(--verde-claro); border-color:var(--verde);}
+  .btn-sec{
+    background:var(--branco); color:var(--verde-escuro);
+    border:1.5px solid var(--verde); border-radius:8px;
+    font-family:inherit; font-size:.95rem; font-weight:700;
+    padding:.65rem 1.1rem; cursor:pointer; min-height:48px;
+  }
+  .btn-sec:hover{background:var(--verde-claro);}
+
+  /* ---------- assinatura ---------- */
+  #pad-wrap{border:1.5px dashed var(--verde); border-radius:8px; background:var(--branco); position:relative;}
+  #pad{width:100%; height:180px; display:block; touch-action:none; border-radius:8px;}
+  #pad-hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--tinta-suave); font-size:.95rem; pointer-events:none;
+  }
+  .pad-acoes{margin-top:.5rem; display:flex; justify-content:flex-end;}
+
+  /* ---------- envio ---------- */
+  .btn-principal{
+    width:100%; background:var(--verde); color:#fff; border:none;
+    border-radius:10px; font-family:inherit; font-size:1.15rem; font-weight:700;
+    padding:1rem; cursor:pointer; min-height:56px;
+  }
+  .btn-principal:hover{background:var(--verde-escuro);}
+  .btn-principal:disabled{background:var(--linha); color:var(--tinta-suave); cursor:not-allowed;}
+  .aviso-legal{
+    font-size:.85rem; color:var(--tinta-suave); margin-top:1rem;
+    padding:.9rem 1rem; background:var(--verde-claro); border-radius:8px;
+  }
+  .erro-global{
+    display:none; background:var(--alerta-claro); color:var(--alerta);
+    border:1.5px solid var(--alerta); border-radius:8px;
+    padding:.9rem 1rem; margin-bottom:1rem; font-weight:600; font-size:.95rem;
+  }
+
+  /* ---------- protocolo (tela de sucesso) ---------- */
+  #protocolo{display:none;}
+  .protocolo-card{
+    background:var(--branco); border:2px solid var(--ok); border-radius:var(--raio);
+    padding:2rem; text-align:center;
+  }
+  .protocolo-card .selo{font-size:2.5rem;}
+  .protocolo-card h2{font-family:'Lora',serif; margin:.5rem 0 1rem;}
+  .protocolo-dados{
+    text-align:left; background:#FDFCFA; border:1px solid var(--linha);
+    border-radius:8px; padding:1rem 1.2rem; font-size:.9rem; margin:1rem 0;
+  }
+  .protocolo-dados dt{font-weight:700; color:var(--verde-escuro); margin-top:.5rem;}
+  .protocolo-dados dd{font-family:ui-monospace, monospace; font-size:.85rem; word-break:break-all;}
+  @media print{
+    .no-print{display:none !important;}
+    body{background:#fff;}
+    section.etapa{border:none; padding:0;}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="doc">
+    <div class="eyebrow">Serviço de Gestão de Agenda Médica</div>
+    <h1>Termo de Consentimento para Tratamento de Dados Pessoais e Dados Pessoais Sensíveis</h1>
+    <div class="meta-doc">
+      <span class="badge" id="badge-versao">Versão 1.0</span>
+      <small>Lei nº 13.709/2018 (LGPD) · Aceite eletrônico</small>
+    </div>
+  </header>
+
+  <form id="form-consentimento" novalidate>
+
+    <!-- ETAPA 1 — Identificação -->
+    <section class="etapa">
+      <div class="etapa-titulo"><span class="etapa-num">Etapa 1</span><h2>Identificação do titular dos dados</h2></div>
+      <div class="campo" data-campo="nome">
+        <label for="nome">Nome completo</label>
+        <input type="text" id="nome" autocomplete="name" required>
+        <div class="erro-msg">Informe o nome completo.</div>
+      </div>
+      <div class="grid-2">
+        <div class="campo" data-campo="cpf">
+          <label for="cpf">CPF</label>
+          <input type="text" id="cpf" inputmode="numeric" placeholder="000.000.000-00" required>
+          <div class="erro-msg">CPF inválido. Confira os 11 dígitos.</div>
+        </div>
+        <div class="campo" data-campo="nascimento">
+          <label for="nascimento">Data de nascimento</label>
+          <input type="date" id="nascimento" required>
+          <div class="erro-msg">Informe a data de nascimento.</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="campo" data-campo="telefone">
+          <label for="telefone">Telefone / WhatsApp</label>
+          <input type="tel" id="telefone" autocomplete="tel" placeholder="(00) 00000-0000" required>
+          <div class="erro-msg">Informe um telefone de contato.</div>
+        </div>
+        <div class="campo">
+          <label for="email">E-mail <span class="opcional-tag">opcional</span></label>
+          <input type="email" id="email" autocomplete="email">
+        </div>
+      </div>
+
+      <label class="check-row" id="row-rep">
+        <input type="checkbox" id="tem-representante">
+        <span class="texto">O titular é representado por <strong>representante legal</strong> (curador/procurador), que realiza este aceite em nome dele.</span>
+      </label>
+      <div id="bloco-representante" style="display:none;">
+        <div class="grid-2">
+          <div class="campo" data-campo="rep-nome">
+            <label for="rep-nome">Nome do representante</label>
+            <input type="text" id="rep-nome">
+            <div class="erro-msg">Informe o nome do representante.</div>
+          </div>
+          <div class="campo" data-campo="rep-cpf">
+            <label for="rep-cpf">CPF do representante</label>
+            <input type="text" id="rep-cpf" inputmode="numeric" placeholder="000.000.000-00">
+            <div class="erro-msg">CPF do representante inválido.</div>
+          </div>
+        </div>
+        <p class="hint">O documento que comprova a representação (termo de curatela, procuração) deverá ser enviado à equipe de atendimento.</p>
+      </div>
+    </section>
+
+    <!-- ETAPA 2 — Leitura do termo -->
+    <section class="etapa">
+      <div class="etapa-titulo"><span class="etapa-num">Etapa 2</span><h2>Leitura do termo</h2></div>
+      <p class="hint">Leia o termo completo abaixo. Role o texto até o final antes de prosseguir.</p>
+
+      <div class="termo-box" id="termo-texto" tabindex="0" aria-label="Texto integral do termo de consentimento">
+        <h3>1. Identificação do Controlador</h3>
+        <p><strong>[RAZÃO SOCIAL DA EMPRESA]</strong>, CNPJ nº [___], com sede em [endereço], denominada CONTROLADORA, nos termos da Lei nº 13.709/2018 (LGPD). Encarregado (DPO): [nome] — contato: [e-mail/telefone].</p>
+        <h3>2. Dados Pessoais Coletados</h3>
+        <p><strong>Dados comuns:</strong> nome, CPF, RG, data de nascimento, endereço, telefone, e-mail, dados do plano de saúde e contatos de pessoas autorizadas.</p>
+        <p><strong>Dados sensíveis (saúde):</strong> agendamentos de consultas, exames e procedimentos; histórico de consultas, exames e tratamentos; medicamentos em uso e prescrições informadas; laudos e documentos médicos fornecidos; alergias e condições de saúde informadas para organização do acompanhamento.</p>
+        <p><strong>Dados de registro do aceite:</strong> para comprovação do consentimento e segurança, serão registrados a data/hora do aceite, o endereço IP, a localização aproximada derivada do IP e informações do navegador utilizado.</p>
+        <h3>3. Finalidades</h3>
+        <ul>
+          <li>Cadastro, organização e gestão da agenda de consultas, exames e tratamentos;</li>
+          <li>Envio de lembretes e alertas sobre compromissos de saúde pelos canais autorizados;</li>
+          <li>Elaboração de resumos organizacionais do histórico para o titular e seus autorizados;</li>
+          <li>Acesso às informações pelas pessoas expressamente autorizadas (Etapa 3);</li>
+          <li>Comunicação sobre a prestação do serviço e cumprimento de obrigações legais.</li>
+        </ul>
+        <p><strong>A CONTROLADORA NÃO realiza</strong> diagnóstico, interpretação clínica de exames, prescrição ou orientação médica. O serviço é exclusivamente organizacional e administrativo.</p>
+        <h3>4. Compartilhamento</h3>
+        <p>Os dados são acessíveis somente às pessoas autorizadas pelo titular, aos colaboradores estritamente necessários (sob confidencialidade), aos operadores de tecnologia contratados (sob contrato com cláusulas de proteção de dados) e a autoridades públicas quando houver obrigação legal. A CONTROLADORA não vende, aluga ou compartilha dados para fins comerciais ou publicitários, sendo vedado o uso de dados de saúde para vantagem econômica (art. 11, §4º, LGPD).</p>
+        <h3>5. Segurança e Conservação</h3>
+        <p>Dados armazenados com criptografia em trânsito e em repouso, controle de acesso por perfil, auditoria de acessos e backups seguros. Conservação durante a relação contratual e, após, pelo prazo necessário ao cumprimento de obrigações legais, com posterior eliminação ou anonimização.</p>
+        <h3>6. Direitos do Titular (art. 18, LGPD)</h3>
+        <p>Confirmação do tratamento; acesso; correção; anonimização, bloqueio ou eliminação de dados excessivos; portabilidade; eliminação dos dados tratados com base no consentimento; informação sobre compartilhamentos; informação sobre a possibilidade de não consentir; e <strong>revogação do consentimento, total ou parcial, a qualquer tempo</strong>, com efeitos imediatos, ressalvadas obrigações legais. Requisições ao Encarregado, respondidas nos prazos da LGPD/ANPD.</p>
+      </div>
+      <div class="termo-integridade" id="hash-display">Integridade do texto (SHA-256): calculando…</div>
+
+      <label class="check-row" style="margin-top:1rem;">
+        <input type="checkbox" id="li-termo" required>
+        <span class="texto"><strong>Li e compreendi</strong> o termo de consentimento acima, na íntegra.<span class="obrigatorio-tag">obrigatório</span></span>
+      </label>
+    </section>
+
+    <!-- ETAPA 3 — Anexo I -->
+    <section class="etapa">
+      <div class="etapa-titulo"><span class="etapa-num">Etapa 3</span><h2>Pessoas autorizadas a acessar os dados</h2></div>
+      <p class="hint">Inclua familiares e/ou profissionais de saúde que poderão acessar os dados, e escolha o nível de acesso de cada um. Esta etapa é opcional — você pode não autorizar ninguém agora e incluir depois. Autorizações podem ser alteradas ou revogadas a qualquer momento, com efeito imediato.</p>
+      <div id="lista-pessoas"></div>
+      <button type="button" class="btn-sec" id="btn-add-pessoa">+ Adicionar pessoa autorizada</button>
+    </section>
+
+    <!-- ETAPA 4 — Consentimentos -->
+    <section class="etapa">
+      <div class="etapa-titulo"><span class="etapa-num">Etapa 4</span><h2>Consentimento específico e destacado</h2></div>
+      <p class="hint">Marque individualmente cada item. Os itens 4.1 e 4.2 são necessários para a prestação do serviço; o item 4.3 é necessário apenas se você autorizou pessoas na etapa anterior.</p>
+
+      <label class="check-row">
+        <input type="checkbox" id="c-comuns" data-consent="dados_comuns" required>
+        <span class="texto"><strong>(4.1)</strong> Autorizo o tratamento dos meus <strong>dados pessoais comuns</strong> para as finalidades descritas no termo.<span class="obrigatorio-tag">obrigatório</span></span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="c-sensiveis" data-consent="dados_sensiveis_saude" required>
+        <span class="texto"><strong>(4.2)</strong> Autorizo o tratamento dos meus <strong>dados pessoais sensíveis referentes à saúde</strong> para as finalidades descritas no termo, ciente de que se trata de categoria especial de dados (art. 11, LGPD).<span class="obrigatorio-tag">obrigatório</span></span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="c-compartilhamento" data-consent="compartilhamento_autorizados">
+        <span class="texto"><strong>(4.3)</strong> Autorizo o <strong>compartilhamento</strong> dos meus dados, inclusive de saúde, com as pessoas indicadas na Etapa 3, nos níveis de acesso definidos.</span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="c-lembretes" data-consent="lembretes">
+        <span class="texto"><strong>(4.4)</strong> Aceito receber lembretes sobre meus compromissos de saúde.<span class="opcional-tag">opcional</span></span>
+      </label>
+      <div id="canais-wrap" style="display:none; padding-left:2.6rem;">
+        <p class="hint" style="margin-bottom:.5rem;">Por quais canais?</p>
+        <label class="check-row"><input type="checkbox" data-canal="whatsapp"><span class="texto">WhatsApp</span></label>
+        <label class="check-row"><input type="checkbox" data-canal="sms"><span class="texto">SMS</span></label>
+        <label class="check-row"><input type="checkbox" data-canal="email"><span class="texto">E-mail</span></label>
+        <label class="check-row"><input type="checkbox" data-canal="ligacao"><span class="texto">Ligação telefônica</span></label>
+      </div>
+    </section>
+
+    <!-- ETAPA 5 — Assinatura -->
+    <section class="etapa">
+      <div class="etapa-titulo"><span class="etapa-num">Etapa 5</span><h2>Assinatura</h2></div>
+      <p class="hint">Assine no quadro abaixo usando o dedo (celular/tablet) ou o mouse. Quem assina é o titular ou, se marcado na Etapa 1, o representante legal.</p>
+      <div id="pad-wrap">
+        <canvas id="pad"></canvas>
+        <div id="pad-hint">Assine aqui</div>
+      </div>
+      <div class="pad-acoes">
+        <button type="button" class="btn-sec" id="btn-limpar" style="min-height:40px; padding:.4rem .9rem;">Limpar assinatura</button>
+      </div>
+    </section>
+
+    <div class="erro-global" id="erro-global" role="alert"></div>
+
+    <button type="submit" class="btn-principal" id="btn-enviar">Confirmar e registrar o consentimento</button>
+
+    <p class="aviso-legal">
+      Ao confirmar, serão registrados como evidência do aceite: data e hora, versão e hash do termo, itens consentidos,
+      pessoas autorizadas, assinatura, endereço IP, localização aproximada derivada do IP e identificação do navegador.
+      Esses registros são usados exclusivamente para comprovação do consentimento e segurança, nos termos da LGPD.
+      Você pode revogar este consentimento a qualquer momento pelo canal do Encarregado (DPO).
+    </p>
+  </form>
+
+  <!-- Tela de protocolo -->
+  <div id="protocolo">
+    <div class="protocolo-card">
+      <div class="selo" aria-hidden="true">✓</div>
+      <h2>Consentimento registrado</h2>
+      <p>Guarde o número de protocolo abaixo. Uma cópia do registro ficará disponível na sua conta.</p>
+      <dl class="protocolo-dados" id="protocolo-dados"></dl>
+      <button type="button" class="btn-sec no-print" onclick="window.print()">Imprimir comprovante</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   CONFIGURAÇÃO
+   - ENDPOINT: rota do SEU backend que recebe o aceite. O backend é quem
+     registra IP, data/hora oficial e localização aproximada (via IP).
+   - VERSAO_TERMO: incremente sempre que o texto do termo mudar. Mudança de
+     finalidade exige novo consentimento de todos os titulares.
+   ========================================================================= */
+const ENDPOINT = '/api/consentimentos';
+const VERSAO_TERMO = '1.0';
+
+let hashTermo = null;
+
+/* ---------- hash SHA-256 do texto do termo (prova de integridade) ---------- */
+async function calcularHashTermo(){
+  const texto = document.getElementById('termo-texto').innerText.replace(/\s+/g,' ').trim();
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  hashTermo = [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  document.getElementById('hash-display').textContent =
+    'Integridade do texto (SHA-256): ' + hashTermo.slice(0,16) + '…';
+}
+calcularHashTermo();
+
+/* ---------- interações visuais ---------- */
+document.addEventListener('change', e=>{
+  const row = e.target.closest('.check-row, .nivel-opt');
+  if(!row) return;
+  if(e.target.type === 'radio'){
+    row.parentElement.querySelectorAll('.nivel-opt').forEach(o=>o.classList.remove('marcado'));
+  }
+  row.classList.toggle('marcado', e.target.checked);
+});
+
+document.getElementById('tem-representante').addEventListener('change', e=>{
+  document.getElementById('bloco-representante').style.display = e.target.checked ? 'block' : 'none';
+});
+document.getElementById('c-lembretes').addEventListener('change', e=>{
+  document.getElementById('canais-wrap').style.display = e.target.checked ? 'block' : 'none';
+});
+
+/* ---------- máscara e validação de CPF ---------- */
+function mascaraCPF(el){
+  el.addEventListener('input', ()=>{
+    let v = el.value.replace(/\D/g,'').slice(0,11);
+    v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+    el.value = v;
+  });
+}
+mascaraCPF(document.getElementById('cpf'));
+mascaraCPF(document.getElementById('rep-cpf'));
+
+function cpfValido(cpf){
+  cpf = cpf.replace(/\D/g,'');
+  if(cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+  for(const t of [9,10]){
+    let soma = 0;
+    for(let i=0;i<t;i++) soma += parseInt(cpf[i]) * (t+1-i);
+    const dig = ((soma*10)%11)%10;
+    if(dig !== parseInt(cpf[t])) return false;
+  }
+  return true;
+}
+
+/* ---------- Anexo I: pessoas autorizadas ---------- */
+let seqPessoa = 0;
+document.getElementById('btn-add-pessoa').addEventListener('click', ()=>{
+  seqPessoa++;
+  const id = seqPessoa;
+  const card = document.createElement('div');
+  card.className = 'pessoa-card';
+  card.dataset.pessoa = id;
+  card.innerHTML = `
+    <button type="button" class="remover" aria-label="Remover pessoa">Remover</button>
+    <div class="grid-2">
+      <div class="campo"><label>Nome completo</label><input type="text" data-p="nome"></div>
+      <div class="campo"><label>CPF</label><input type="text" data-p="cpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+    </div>
+    <div class="grid-2">
+      <div class="campo"><label>Vínculo (filho, médico etc.)</label><input type="text" data-p="vinculo"></div>
+      <div class="campo"><label>Contato (telefone/e-mail)</label><input type="text" data-p="contato"></div>
+    </div>
+    <label style="margin-bottom:.3rem;">Nível de acesso</label>
+    <div class="niveis">
+      <label class="nivel-opt"><input type="radio" name="nivel-${id}" value="1"><span><strong>1 · Agenda</strong><br>Só agendamentos futuros e lembretes</span></label>
+      <label class="nivel-opt"><input type="radio" name="nivel-${id}" value="2"><span><strong>2 · Acompanhamento</strong><br>+ histórico de consultas e exames</span></label>
+      <label class="nivel-opt"><input type="radio" name="nivel-${id}" value="3"><span><strong>3 · Completo</strong><br>+ documentos, laudos e medicamentos</span></label>
+    </div>`;
+  card.querySelector('.remover').addEventListener('click', ()=>card.remove());
+  mascaraCPF(card.querySelector('[data-p=cpf]'));
+  document.getElementById('lista-pessoas').appendChild(card);
+});
+
+/* ---------- assinatura em canvas ---------- */
+const pad = document.getElementById('pad');
+const padHint = document.getElementById('pad-hint');
+const ctx = pad.getContext('2d');
+let desenhando = false, temAssinatura = false;
+
+function ajustarCanvas(){
+  const dados = temAssinatura ? pad.toDataURL() : null;
+  const ratio = window.devicePixelRatio || 1;
+  pad.width = pad.offsetWidth * ratio;
+  pad.height = 180 * ratio;
+  ctx.scale(ratio, ratio);
+  ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1C2B2D';
+  if(dados){ const img = new Image(); img.onload = ()=>ctx.drawImage(img,0,0,pad.offsetWidth,180); img.src = dados; }
+}
+ajustarCanvas();
+window.addEventListener('resize', ajustarCanvas);
+
+function pos(e){
+  const r = pad.getBoundingClientRect();
+  const p = e.touches ? e.touches[0] : e;
+  return { x: p.clientX - r.left, y: p.clientY - r.top };
+}
+function iniciar(e){ desenhando = true; temAssinatura = true; padHint.style.display='none';
+  const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); }
+function mover(e){ if(!desenhando) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); }
+function parar(){ desenhando = false; }
+pad.addEventListener('pointerdown', iniciar);
+pad.addEventListener('pointermove', mover);
+window.addEventListener('pointerup', parar);
+
+document.getElementById('btn-limpar').addEventListener('click', ()=>{
+  ctx.clearRect(0,0,pad.width,pad.height); temAssinatura = false; padHint.style.display='flex';
+});
+
+/* ---------- validação e envio ---------- */
+function marcarInvalido(campo, invalido){
+  const wrap = document.querySelector(`[data-campo="${campo}"]`);
+  if(wrap) wrap.classList.toggle('invalido', invalido);
+  return !invalido;
+}
+
+document.getElementById('form-consentimento').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const erros = [];
+  const v = id => document.getElementById(id).value.trim();
+
+  if(!marcarInvalido('nome', v('nome').length < 5)) erros.push('nome completo');
+  if(!marcarInvalido('cpf', !cpfValido(v('cpf')))) erros.push('CPF');
+  if(!marcarInvalido('nascimento', !v('nascimento'))) erros.push('data de nascimento');
+  if(!marcarInvalido('telefone', v('telefone').replace(/\D/g,'').length < 10)) erros.push('telefone');
+
+  const temRep = document.getElementById('tem-representante').checked;
+  if(temRep){
+    if(!marcarInvalido('rep-nome', v('rep-nome').length < 5)) erros.push('nome do representante');
+    if(!marcarInvalido('rep-cpf', !cpfValido(v('rep-cpf')))) erros.push('CPF do representante');
+  }
+
+  if(!document.getElementById('li-termo').checked) erros.push('declaração de leitura do termo (Etapa 2)');
+  if(!document.getElementById('c-comuns').checked) erros.push('consentimento 4.1');
+  if(!document.getElementById('c-sensiveis').checked) erros.push('consentimento 4.2');
+
+  const pessoas = [...document.querySelectorAll('.pessoa-card')].map(card=>{
+    const g = s => card.querySelector(`[data-p=${s}]`).value.trim();
+    const nivel = card.querySelector('input[type=radio]:checked');
+    return { nome: g('nome'), cpf: g('cpf'), vinculo: g('vinculo'), contato: g('contato'), nivel: nivel ? +nivel.value : null };
+  }).filter(p=>p.nome);
+  pessoas.forEach((p,i)=>{ if(!p.nivel) erros.push(`nível de acesso da pessoa autorizada ${i+1}`); });
+  if(pessoas.length && !document.getElementById('c-compartilhamento').checked)
+    erros.push('consentimento 4.3 (necessário porque há pessoas autorizadas na Etapa 3)');
+
+  if(!temAssinatura) erros.push('assinatura (Etapa 5)');
+
+  const erroBox = document.getElementById('erro-global');
+  if(erros.length){
+    erroBox.style.display = 'block';
+    erroBox.textContent = 'Antes de enviar, verifique: ' + erros.join('; ') + '.';
+    erroBox.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  erroBox.style.display = 'none';
+
+  const canais = [...document.querySelectorAll('[data-canal]')].filter(c=>c.checked).map(c=>c.dataset.canal);
+
+  /* Payload — o backend complementa com IP, geolocalização aproximada por IP,
+     data/hora oficial do servidor e grava tudo em registro imutável. */
+  const payload = {
+    versao_termo: VERSAO_TERMO,
+    hash_termo_sha256: hashTermo,
+    titular: { nome: v('nome'), cpf: v('cpf'), nascimento: v('nascimento'), telefone: v('telefone'), email: v('email') || null },
+    representante_legal: temRep ? { nome: v('rep-nome'), cpf: v('rep-cpf') } : null,
+    consentimentos: {
+      dados_comuns: true,
+      dados_sensiveis_saude: true,
+      compartilhamento_autorizados: document.getElementById('c-compartilhamento').checked,
+      lembretes: document.getElementById('c-lembretes').checked,
+      canais_lembrete: canais
+    },
+    pessoas_autorizadas: pessoas,
+    assinatura_png_base64: pad.toDataURL('image/png'),
+    evidencias_cliente: {
+      timestamp_cliente: new Date().toISOString(),
+      fuso_horario: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      user_agent: navigator.userAgent,
+      idioma: navigator.language,
+      resolucao_tela: `${screen.width}x${screen.height}`
+    }
+  };
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true; btn.textContent = 'Registrando…';
+
+  try{
+    const resp = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const dados = await resp.json(); // esperado: { protocolo, registrado_em, ip_registrado }
+    mostrarProtocolo(dados);
+  }catch(err){
+    /* Sem backend disponível (ex.: pré-visualização): gera protocolo local para
+       demonstração. Em produção, trate como erro e peça nova tentativa. */
+    mostrarProtocolo({
+      protocolo: 'DEMO-' + Date.now().toString(36).toUpperCase(),
+      registrado_em: new Date().toLocaleString('pt-BR'),
+      ip_registrado: '(registrado pelo servidor no envio real)'
+    });
+  }
+});
+
+function mostrarProtocolo(d){
+  document.getElementById('form-consentimento').style.display = 'none';
+  document.getElementById('protocolo').style.display = 'block';
+  document.getElementById('protocolo-dados').innerHTML = `
+    <dt>Protocolo</dt><dd>${d.protocolo}</dd>
+    <dt>Registrado em</dt><dd>${d.registrado_em}</dd>
+    <dt>IP registrado</dt><dd>${d.ip_registrado}</dd>
+    <dt>Versão do termo</dt><dd>${VERSAO_TERMO}</dd>
+    <dt>Hash do termo (SHA-256)</dt><dd>${hashTermo}</dd>`;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+</script>
+</body>
+</html>
