@@ -14,6 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from api.database import get_db
 import app.models
+from app.services.auditoria_service import registrar_log
 from app.models.pacientes import Paciente
 from app.models.consulta import Consulta
 from app.models.exame import Exame
@@ -24,6 +25,7 @@ from app.models.pedido_exame import PedidoExame
 from app.models.anexo_exame import AnexoExame
 from app.models.usuario import Usuario, PerfilUsuario
 from app.models.usuario_paciente import UsuarioPaciente
+from app.models.consentimento import Consentimento
 
 router = APIRouter(prefix="/familia", tags=["familia"])
 
@@ -79,6 +81,15 @@ def _get_paciente_id(usuario_id: int, db: Session) -> int | None:
 
 def _login_redirect():
     return RedirectResponse(url="/familia/login", status_code=303)
+
+
+def _ip(request: Request) -> str:
+    xff = request.headers.get("x-forwarded-for")
+    return xff.split(",")[0].strip() if xff else (request.client.host if request.client else "")
+
+
+def _ua(request: Request) -> str:
+    return request.headers.get("user-agent", "")[:500]
 
 
 # ── Helpers HTML ──────────────────────────────────────────────────────────────
@@ -450,6 +461,9 @@ def agenda(
     if not paciente_id:
         return _login_redirect()
 
+    registrar_log(db, "leitura", "agenda", usuario_id=usuario.id,
+                  paciente_id=paciente_id, ip=_ip(request), user_agent=_ua(request))
+
     paciente = db.query(Paciente).filter_by(id=paciente_id).first()
     hoje = date.today()
     ano  = ano or hoje.year
@@ -669,6 +683,10 @@ def confirmar_consulta(
     conf.respondido_em = dt.utcnow()
     conf.respondido    = usuario.nome
     conf.canal         = "web"
+    registrar_log(db, "edicao", "consultas", usuario_id=usuario.id,
+                  paciente_id=paciente_id, recurso_id=consulta_id,
+                  ip=_ip(request), user_agent=_ua(request),
+                  detalhes={"acao_detalhe": "confirmacao_web"})
     db.commit()
     return RedirectResponse(url="/familia/", status_code=303)
 
@@ -703,8 +721,69 @@ def registrar_adesao(
             prescricao_id=prescricao_id, semana=seg,
             nivel=NivelAdesao[nivel], observacoes=observacoes,
         ))
+    registrar_log(db, "criacao", "adesao", usuario_id=usuario.id,
+                  paciente_id=paciente_id, recurso_id=prescricao_id,
+                  ip=_ip(request), user_agent=_ua(request),
+                  detalhes={"nivel": nivel, "semana": str(seg)})
     db.commit()
     return RedirectResponse(url="/familia/", status_code=303)
+
+
+@router.get("/meus-acessos", response_class=HTMLResponse)
+def meus_acessos(
+    request: Request,
+    session: str = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    usuario = _get_usuario(session, db)
+    if not usuario:
+        return _login_redirect()
+    paciente_id = _get_paciente_id(usuario.id, db)
+    if not paciente_id:
+        return _login_redirect()
+
+    NIVEL_LABEL = {1: "Agenda", 2: "Acompanhamento", 3: "Completo"}
+
+    vinculos = db.query(UsuarioPaciente).filter_by(paciente_id=paciente_id).all()
+    acessos = []
+    for v in vinculos:
+        u = db.query(Usuario).filter_by(id=v.usuario_id, ativo=True).first()
+        if u:
+            acessos.append({
+                "nome":             u.nome,
+                "perfil":           u.perfil.value,
+                "nivel":            v.nivel,
+                "nivel_label":      NIVEL_LABEL.get(v.nivel, "—"),
+                "protocolo_origem": v.protocolo_origem,
+                "criado_em":        v.criado_em.strftime("%d/%m/%Y") if v.criado_em else "",
+            })
+
+    consentimentos = (
+        db.query(Consentimento)
+        .filter_by(titular_id=paciente_id)
+        .order_by(Consentimento.registrado_em.desc())
+        .all()
+    )
+    cons_lista = []
+    for c in consentimentos:
+        cons_lista.append({
+            "protocolo":    c.protocolo,
+            "versao":       c.versao_termo,
+            "registrado_em": c.registrado_em.strftime("%d/%m/%Y %H:%M") if c.registrado_em else "",
+            "ativo":        c.revogado_em is None,
+            "revogado_em":  c.revogado_em.strftime("%d/%m/%Y %H:%M") if c.revogado_em else None,
+            "pessoas":      len(c.pessoas_autorizadas or []),
+        })
+
+    registrar_log(db, "leitura", "meus_acessos", usuario_id=usuario.id,
+                  paciente_id=paciente_id, ip=_ip(request))
+    db.commit()
+
+    return _render("meus_acessos.html", {
+        "paciente_nome": db.query(Paciente).filter_by(id=paciente_id).first().nome,
+        "acessos": acessos,
+        "consentimentos": cons_lista,
+    })
 
 
 @router.get("/relatorio")

@@ -16,3 +16,4 @@ from app.models.exame            import Exame
 from app.models.pedido_exame     import PedidoExame
 from app.models.adesao_tratamento import AdesaoTratamento
 from app.models.consentimento     import Consentimento
+from app.models.log_auditoria     import LogAuditoria

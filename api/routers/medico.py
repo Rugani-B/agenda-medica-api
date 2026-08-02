@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from api.database import get_db
 import app.models
+from app.services.auditoria_service import registrar_log
 from app.models.medico import Medico
 from app.models.pacientes import Paciente
 from app.models.consulta import Consulta
@@ -258,6 +259,10 @@ def detalhe_paciente(
     medicamentos = db.query(Medicamento).order_by(Medicamento.nome).all()
     tipos_exame  = db.query(TipoExame).order_by(TipoExame.nome).all()
 
+    registrar_log(db, "leitura", "paciente", usuario_id=usuario.id,
+                  paciente_id=paciente_id, ip=request.headers.get("x-forwarded-for", ""),
+                  user_agent=request.headers.get("user-agent", "")[:500])
+
     return _render("medico_paciente.html", {
         "medico": medico, "usuario": usuario, "paciente": paciente,
         "consultas": consultas, "prescricoes": prescricoes,
@@ -311,6 +316,9 @@ def criar_prescricao(
                 prescricao_id=presc.id, medicamento_id=med_id,
                 dose=dose or None, frequencia=freq or None,
             ))
+    registrar_log(db, "criacao", "prescricoes", usuario_id=usuario.id,
+                  paciente_id=paciente_id, recurso_id=presc.id,
+                  ip=request.headers.get("x-forwarded-for", ""))
     db.commit()
     return RedirectResponse(url=f"/medico/paciente/{paciente_id}?ok=prescricao", status_code=303)
 
@@ -347,5 +355,7 @@ def criar_pedido(
         consulta_id=c_id,
         status=StatusPedido.solicitado,
     ))
+    registrar_log(db, "criacao", "pedidos_exame", usuario_id=usuario.id,
+                  paciente_id=paciente_id, ip=request.headers.get("x-forwarded-for", ""))
     db.commit()
     return RedirectResponse(url=f"/medico/paciente/{paciente_id}?ok=pedido", status_code=303)

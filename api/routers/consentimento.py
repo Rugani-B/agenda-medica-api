@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from api.database import get_db
 from app.models.consentimento import Consentimento
+from app.services.auditoria_service import registrar_log
 from app.models.pacientes import Paciente
 from app.models.usuario import Usuario, PerfilUsuario
 from app.models.usuario_paciente import UsuarioPaciente
@@ -174,6 +175,9 @@ async def registrar_consentimento(request: Request, db: Session = Depends(get_db
                         protocolo_origem = protocolo,
                     ))
 
+    registrar_log(db, "criacao", "consentimento", paciente_id=titular_id,
+                  ip=ip, user_agent=user_agent,
+                  detalhes={"protocolo": protocolo, "versao": versao})
     db.commit()
     db.refresh(registro)
 
@@ -217,5 +221,8 @@ async def revogar_consentimento(
     for v in vinculos:
         db.delete(v)
 
+    registrar_log(db, "revogacao", "consentimento", paciente_id=registro.titular_id,
+                  ip=_ip_do_request(request),
+                  detalhes={"protocolo": protocolo})
     db.commit()
     return {"revogado_em": registro.revogado_em.isoformat()}
