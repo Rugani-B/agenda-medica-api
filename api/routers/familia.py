@@ -744,11 +744,13 @@ def meus_acessos(
 
     NIVEL_LABEL = {1: "Agenda", 2: "Acompanhamento", 3: "Completo"}
 
+    _PERFIS_WEB = {PerfilUsuario.familiar, PerfilUsuario.paciente, PerfilUsuario.medico}
+
     vinculos = db.query(UsuarioPaciente).filter_by(paciente_id=paciente_id).all()
     acessos = []
     for v in vinculos:
         u = db.query(Usuario).filter_by(id=v.usuario_id, ativo=True).first()
-        if u:
+        if u and u.perfil in _PERFIS_WEB:
             acessos.append({
                 "nome":             u.nome,
                 "perfil":           u.perfil.value,
