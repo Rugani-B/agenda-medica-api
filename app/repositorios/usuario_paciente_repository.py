@@ -25,7 +25,8 @@ class UsuarioPacienteRepository:
         )
         return {r[0] for r in rows}
 
-    def vincular(self, usuario_id: int, paciente_id: int) -> UsuarioPaciente:
+    def vincular(self, usuario_id: int, paciente_id: int,
+                 status: str = "pendente") -> UsuarioPaciente:
         existente = (
             self.db.query(UsuarioPaciente)
             .filter_by(usuario_id=usuario_id, paciente_id=paciente_id)
@@ -33,11 +34,25 @@ class UsuarioPacienteRepository:
         )
         if existente:
             return existente
-        vinculo = UsuarioPaciente(usuario_id=usuario_id, paciente_id=paciente_id)
+        vinculo = UsuarioPaciente(usuario_id=usuario_id, paciente_id=paciente_id,
+                                  status=status)
         self.db.add(vinculo)
         self.db.commit()
         self.db.refresh(vinculo)
         return vinculo
+
+    def ativar_pendentes(self, paciente_id: int, protocolo: str) -> int:
+        """Ativa todos os vínculos pendentes de um paciente. Retorna quantos foram ativados."""
+        pendentes = (
+            self.db.query(UsuarioPaciente)
+            .filter_by(paciente_id=paciente_id, status="pendente")
+            .all()
+        )
+        for v in pendentes:
+            v.status           = "ativo"
+            v.protocolo_origem = protocolo
+        self.db.commit()
+        return len(pendentes)
 
     def desvincular(self, usuario_id: int, paciente_id: int) -> None:
         self.db.query(UsuarioPaciente).filter_by(

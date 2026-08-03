@@ -26,6 +26,9 @@ tr:last-child td{border-bottom:none}
 .b-n1{background:#e8f4f8;color:#1a5276}
 .b-n2{background:#e8f0fd;color:#1a3a6e}
 .b-n3{background:#fef9e7;color:#7d6608}
+.b-pendente{background:#fef3cd;color:#856404}
+.b-ativo-link{background:#d5f5e3;color:#145a32}
+tr.pendente td{color:#888}
 .empty{color:#999;font-size:.88rem;padding:.5rem 0}
 .btn-revogar{
   background:none;border:1.5px solid #c0392b;color:#c0392b;
@@ -61,31 +64,34 @@ tr:last-child td{border-bottom:none}
           <tr>
             <th>Nome</th>
             <th>Perfil</th>
-            <th>Nível de acesso</th>
+            <th>Situação</th>
+            <th>Nível</th>
             <th>Desde</th>
-            <th>Protocolo</th>
           </tr>
         </thead>
         <tbody>
           {% for a in acessos %}
-          <tr>
+          <tr class="{{ 'pendente' if a.status == 'pendente' else '' }}">
             <td>{{ a.nome }}</td>
             <td>{{ a.perfil }}</td>
             <td>
-              <span class="badge b-n{{ a.nivel or 0 }}">
-                {{ a.nivel_label }}
-              </span>
-            </td>
-            <td>{{ a.criado_em }}</td>
-            <td style="font-size:.78rem;color:#888">
-              {% if a.protocolo_origem %}
-                {{ a.protocolo_origem }}
-              {% else %}
-                <span title="Vínculo criado administrativamente, sem consentimento registrado">
-                  Vínculo administrativo
+              {% if a.status == 'pendente' %}
+                <span class="badge b-pendente"
+                      title="Aguardando seu consentimento para liberar acesso">
+                  ⏳ Aguardando consentimento
                 </span>
+              {% else %}
+                <span class="badge b-ativo-link">✓ Ativo</span>
               {% endif %}
             </td>
+            <td>
+              {% if a.nivel %}
+                <span class="badge b-n{{ a.nivel }}">{{ a.nivel_label }}</span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>{{ a.criado_em }}</td>
           </tr>
           {% endfor %}
         </tbody>

@@ -10,9 +10,11 @@ from sqlalchemy.orm import Session
 from api.database import get_db
 from app.models.consentimento import Consentimento
 from app.services.auditoria_service import registrar_log
+from app.services.crypto_service import encrypt_json, encrypt, cpf_hash as _cpf_hash
 from app.models.pacientes import Paciente
 from app.models.usuario import Usuario, PerfilUsuario
 from app.models.usuario_paciente import UsuarioPaciente
+from app.repositorios.usuario_paciente_repository import UsuarioPacienteRepository
 
 router = APIRouter(tags=["consentimento"])
 
@@ -122,23 +124,27 @@ async def registrar_consentimento(request: Request, db: Session = Depends(get_db
     if paciente:
         titular_id = paciente.id
 
+    # ── Snapshot do titular (criptografado) ──────────────────────────────────
+    snapshot = {
+        "nome":       titular.get("nome", "").strip(),
+        "cpf":        cpf_titular,
+        "nascimento": titular.get("nascimento"),
+        "telefone":   titular.get("telefone"),
+        "email":      titular.get("email"),
+    }
+
     # ── Grava o consentimento ─────────────────────────────────────────────────
     registro = Consentimento(
         protocolo           = protocolo,
         titular_id          = titular_id,
+        titular_cpf_hash    = _cpf_hash(cpf_titular),
         versao_termo        = versao,
         hash_termo_sha256   = hash_recebido or "",
         consentimentos_json = cons,
         pessoas_autorizadas = pessoas,
-        assinatura_png_b64  = b.get("assinatura_png_base64"),
-        titular_snapshot    = {
-            "nome":       titular.get("nome", "").strip(),
-            "cpf":        cpf_titular,
-            "nascimento": titular.get("nascimento"),
-            "telefone":   titular.get("telefone"),
-            "email":      titular.get("email"),
-        },
-        representante_legal = rep,
+        assinatura_png_b64  = encrypt(b.get("assinatura_png_base64")),
+        titular_snapshot    = encrypt_json(snapshot),
+        representante_legal = encrypt_json(rep),
         ip                  = ip,
         ip_localizacao      = None,   # GeoIP pode ser adicionado futuramente
         user_agent          = user_agent,
@@ -179,6 +185,14 @@ async def registrar_consentimento(request: Request, db: Session = Depends(get_db
                         nivel            = nivel,
                         protocolo_origem = protocolo,
                     ))
+
+    # ── Ativa vínculos pendentes do paciente ─────────────────────────────────
+    if titular_id:
+        repo = UsuarioPacienteRepository(db)
+        n_ativados = repo.ativar_pendentes(titular_id, protocolo)
+        if n_ativados:
+            registrar_log(db, "edicao", "usuario_paciente", paciente_id=titular_id,
+                          ip=ip, detalhes={"ativados": n_ativados, "protocolo": protocolo})
 
     registrar_log(db, "criacao", "consentimento", paciente_id=titular_id,
                   ip=ip, user_agent=user_agent,
