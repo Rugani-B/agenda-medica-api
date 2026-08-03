@@ -122,7 +122,13 @@ tr.pendente td{color:#888}
           <tr>
             <td style="font-family:monospace;font-size:.82rem">{{ c.protocolo }}</td>
             <td>{{ c.registrado_em }}</td>
-            <td style="text-align:center">{{ c.pessoas }}</td>
+            <td>
+              {% if c.pessoas %}
+                {% for nome in c.pessoas %}<div>{{ nome }}</div>{% endfor %}
+              {% else %}
+                <span style="color:#999">Nenhuma</span>
+              {% endif %}
+            </td>
             <td>
               {% if c.ativo %}
               <span class="badge b-ativo">Ativo</span>

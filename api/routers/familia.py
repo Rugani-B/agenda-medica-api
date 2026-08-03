@@ -792,7 +792,7 @@ def meus_acessos(
             "registrado_em": c.registrado_em.strftime("%d/%m/%Y %H:%M") if c.registrado_em else "",
             "ativo":        c.revogado_em is None,
             "revogado_em":  c.revogado_em.strftime("%d/%m/%Y %H:%M") if c.revogado_em else None,
-            "pessoas":      len(c.pessoas_autorizadas or []),
+            "pessoas":      [p.get("nome", "—") for p in (c.pessoas_autorizadas or [])],
         })
 
     registrar_log(db, "leitura", "meus_acessos", usuario_id=usuario.id,
