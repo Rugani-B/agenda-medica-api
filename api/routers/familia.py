@@ -760,12 +760,31 @@ def meus_acessos(
                 "criado_em":        v.criado_em.strftime("%d/%m/%Y") if v.criado_em else "",
             })
 
+    # Busca consentimentos vinculados ao paciente OU pelo CPF no snapshot
+    from sqlalchemy import func, or_
+    paciente_obj = db.query(Paciente).filter_by(id=paciente_id).first()
+    cpf_raw = re.sub(r"\D", "", paciente_obj.cpf or "") if paciente_obj else ""
+    cpf_fmt = f"{cpf_raw[:3]}.{cpf_raw[3:6]}.{cpf_raw[6:9]}-{cpf_raw[9:]}" \
+              if len(cpf_raw) == 11 else ""
+
     consentimentos = (
         db.query(Consentimento)
-        .filter_by(titular_id=paciente_id)
+        .filter(
+            or_(
+                Consentimento.titular_id == paciente_id,
+                func.json_unquote(func.json_extract(
+                    Consentimento.titular_snapshot, "$.cpf"
+                )).in_([cpf_raw, cpf_fmt]) if cpf_raw else False,
+            )
+        )
         .order_by(Consentimento.registrado_em.desc())
         .all()
     )
+
+    # Vincula retroativamente os que ainda têm titular_id nulo
+    for c in consentimentos:
+        if c.titular_id is None:
+            c.titular_id = paciente_id
     cons_lista = []
     for c in consentimentos:
         cons_lista.append({

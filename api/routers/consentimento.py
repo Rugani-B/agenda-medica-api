@@ -111,9 +111,14 @@ async def registrar_consentimento(request: Request, db: Session = Depends(get_db
     user_agent  = request.headers.get("user-agent")
     protocolo   = _gerar_protocolo()
 
-    # ── Tenta vincular ao paciente cadastrado pelo CPF ────────────────────────
+    # ── Tenta vincular ao paciente cadastrado pelo CPF ───────────────────────
+    # CPF pode estar salvo com ou sem formatação no banco
+    cpf_fmt = f"{cpf_titular[:3]}.{cpf_titular[3:6]}.{cpf_titular[6:9]}-{cpf_titular[9:]}" \
+              if len(cpf_titular) == 11 else cpf_titular
     titular_id = None
-    paciente = db.query(Paciente).filter(Paciente.cpf == cpf_titular).first()
+    paciente = db.query(Paciente).filter(
+        (Paciente.cpf == cpf_titular) | (Paciente.cpf == cpf_fmt)
+    ).first()
     if paciente:
         titular_id = paciente.id
 
