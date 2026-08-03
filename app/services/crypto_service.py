@@ -12,24 +12,32 @@ criptografados e diferenciar de dados legados.
 """
 import hashlib
 import json
+import logging
 import os
 
 from cryptography.fernet import Fernet, InvalidToken
 
 _KEY: bytes | None = None
+_fernet_instance: Fernet | None = None
+
+logger = logging.getLogger(__name__)
 
 
 def _fernet() -> Fernet | None:
-    global _KEY
+    global _KEY, _fernet_instance
     raw = os.getenv("ENCRYPTION_KEY", "")
     if not raw:
+        logger.warning("ENCRYPTION_KEY não configurada — dados gravados em texto claro")
         return None
-    if _KEY != raw.encode():
-        _KEY = raw.encode()
-    try:
-        return Fernet(_KEY)
-    except Exception:
-        return None
+    raw_bytes = raw.strip().encode()
+    if _KEY != raw_bytes:
+        _KEY = raw_bytes
+        try:
+            _fernet_instance = Fernet(_KEY)
+        except Exception as e:
+            logger.error("ENCRYPTION_KEY inválida: %s", e)
+            _fernet_instance = None
+    return _fernet_instance
 
 
 _PREFIX = "enc1:"
