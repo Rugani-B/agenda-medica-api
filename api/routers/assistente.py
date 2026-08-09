@@ -80,7 +80,7 @@ def login_page(erro: str = ""):
 async def login_post(request: Request, db: Session = Depends(get_db),
                      email: str = Form(""), senha: str = Form("")):
     u = db.query(Usuario).filter_by(email=email.strip(), ativo=True).first()
-    if not u or u.perfil != PerfilUsuario.assistente or not Usuario.verificar_senha(senha, u.senha_hash):
+    if not u or u.perfil != PerfilUsuario.assistente or not u.verificar_senha(senha):
         return _render("assistente_login.html", erro="E-mail ou senha incorretos.")
     resp = RedirectResponse("/assistente/", status_code=303)
     resp.set_cookie(_COOKIE, _assinar(u.id), max_age=_MAX_AGE, httponly=True, samesite="lax")
