@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Request, Response, Form, HTTPException
+from fastapi import APIRouter, Depends, Request, Response, Form, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from datetime import date, datetime, timedelta
-import os, hmac, hashlib
+from typing import List, Optional
+import os, hmac, hashlib, shutil, uuid
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -13,12 +14,18 @@ from app.models.pacientes import Paciente
 from app.models.consulta import Consulta
 from app.models.exame import Exame, StatusExame
 from app.models.prescricao import Prescricao
-from app.models.adesao_tratamento import NivelAdesao, NIVEL_LABELS
+from app.models.adesao_tratamento import AdesaoTratamento, NivelAdesao, NIVEL_LABELS
 from app.models.medico import Medico
 from app.models.tipo_exame import TipoExame
 from app.models.local_exame import LocalExame
 from app.models.base_enums import StatusAgendamento
+from app.models.prescricao import PrescricaoItem
+from app.models.medicamento import Medicamento
+from app.models.anexo_exame import AnexoExame
 from app.services.auditoria_service import registrar_log
+
+_UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "uploads")
+os.makedirs(_UPLOADS_DIR, exist_ok=True)
 
 router = APIRouter(prefix="/assistente", tags=["assistente"])
 
@@ -240,6 +247,7 @@ def detalhe_paciente(pid: int, request: Request, aba: str = "agenda",
     medicos      = db.query(Medico).order_by(Medico.nome).all()
     tipos_exame  = db.query(TipoExame).order_by(TipoExame.nome).all()
     locais_exame = db.query(LocalExame).order_by(LocalExame.nome).all()
+    medicamentos = db.query(Medicamento).order_by(Medicamento.nome).all()
 
     registrar_log(db, "leitura", "paciente", usuario_id=u.id, paciente_id=pid,
                   ip=_ip(request), detalhes={"aba": aba})
@@ -251,6 +259,10 @@ def detalhe_paciente(pid: int, request: Request, aba: str = "agenda",
                    consultas=consultas, exames=exames,
                    prescricoes=presc_data,
                    medicos=medicos, tipos_exame=tipos_exame, locais_exame=locais_exame,
+                   medicamentos=medicamentos,
+                   niveis_adesao=[n.value for n in NivelAdesao],
+                   status_consulta=["agendada","confirmada","realizada","cancelada","reagendada"],
+                   status_exame=[s.value for s in StatusExame],
                    StatusAgendamento=StatusAgendamento,
                    StatusExame=StatusExame)
 
@@ -332,3 +344,172 @@ async def cancelar_consulta(pid: int, cid: int, request: Request, db: Session = 
     registrar_log(db, "edicao", "consulta", usuario_id=u.id, paciente_id=pid,
                   recurso_id=cid, ip=_ip(request), detalhes={"acao": "cancelar"})
     return JSONResponse({"ok": True})
+
+
+# ── Editar consulta (status + observações) ────────────────────────────────────
+
+@router.post("/paciente/{pid}/consulta/{cid}/editar")
+async def editar_consulta(pid: int, cid: int, request: Request, db: Session = Depends(get_db),
+                          status: str = Form(""), observacoes: str = Form("")):
+    u = _get_assistente(request, db)
+    if not u:
+        raise HTTPException(401)
+    c = db.query(Consulta).filter_by(id=cid, paciente_id=pid).first()
+    if not c:
+        raise HTTPException(404)
+    if status:
+        try:
+            c.status = StatusAgendamento[status]
+        except KeyError:
+            raise HTTPException(422, "Status inválido")
+    c.observacoes = observacoes.strip() or None
+    db.commit()
+    registrar_log(db, "edicao", "consulta", usuario_id=u.id, paciente_id=pid,
+                  recurso_id=cid, ip=_ip(request), detalhes={"status": status})
+    return RedirectResponse(f"/assistente/paciente/{pid}?aba=agenda&ok=editado", status_code=303)
+
+
+# ── Adicionar prescrição a uma consulta ──────────────────────────────────────
+
+@router.post("/paciente/{pid}/consulta/{cid}/prescricao")
+async def adicionar_prescricao(pid: int, cid: int, request: Request,
+                               db: Session = Depends(get_db),
+                               semana_inicio: str = Form(""), semana_fim: str = Form(""),
+                               observacoes: str = Form("")):
+    u = _get_assistente(request, db)
+    if not u:
+        raise HTTPException(401)
+    c = db.query(Consulta).filter_by(id=cid, paciente_id=pid).first()
+    if not c:
+        raise HTTPException(404)
+
+    form = await request.form()
+    med_ids  = form.getlist("medicamento_id")
+    doses    = form.getlist("dose")
+    freqs    = form.getlist("frequencia")
+    durs     = form.getlist("duracao")
+    instrucoes = form.getlist("instrucoes")
+
+    if not med_ids:
+        raise HTTPException(422, "Inclua ao menos um medicamento")
+
+    try:
+        si = date.fromisoformat(semana_inicio) if semana_inicio else None
+        sf = date.fromisoformat(semana_fim)    if semana_fim    else None
+    except ValueError:
+        raise HTTPException(422, "Datas inválidas")
+
+    p = Prescricao(consulta_id=cid, paciente_id=pid, medico_id=c.medico_id,
+                   semana_inicio=si, semana_fim=sf, observacoes=observacoes.strip() or None)
+    db.add(p)
+    db.flush()
+    for i, mid in enumerate(med_ids):
+        if not mid:
+            continue
+        db.add(PrescricaoItem(
+            prescricao_id  = p.id,
+            medicamento_id = int(mid),
+            dose           = doses[i]      if i < len(doses)    else None,
+            frequencia     = freqs[i]      if i < len(freqs)    else None,
+            duracao        = durs[i]       if i < len(durs)     else None,
+            instrucoes     = instrucoes[i] if i < len(instrucoes) else None,
+        ))
+    db.commit()
+    registrar_log(db, "criacao", "prescricao", usuario_id=u.id, paciente_id=pid,
+                  recurso_id=p.id, ip=_ip(request))
+    return RedirectResponse(f"/assistente/paciente/{pid}?aba=prescricoes&ok=prescricao", status_code=303)
+
+
+# ── Registrar adesão ao tratamento ───────────────────────────────────────────
+
+@router.post("/paciente/{pid}/prescricao/{prid}/adesao")
+async def registrar_adesao(pid: int, prid: int, request: Request,
+                           db: Session = Depends(get_db),
+                           semana: str = Form(""), nivel: str = Form(""),
+                           observacoes: str = Form("")):
+    u = _get_assistente(request, db)
+    if not u:
+        raise HTTPException(401)
+    p = db.query(Prescricao).filter_by(id=prid, paciente_id=pid).first()
+    if not p:
+        raise HTTPException(404)
+    try:
+        semana_date = date.fromisoformat(semana)
+        nivel_enum  = NivelAdesao[nivel]
+    except (ValueError, KeyError):
+        raise HTTPException(422, "Dados inválidos")
+
+    # Upsert: atualiza se já existe para a semana
+    existente = db.query(AdesaoTratamento).filter_by(prescricao_id=prid, semana=semana_date).first()
+    if existente:
+        existente.nivel = nivel_enum
+        existente.observacoes = observacoes.strip() or None
+    else:
+        db.add(AdesaoTratamento(prescricao_id=prid, semana=semana_date,
+                                nivel=nivel_enum, observacoes=observacoes.strip() or None))
+    db.commit()
+    registrar_log(db, "criacao", "adesao", usuario_id=u.id, paciente_id=pid,
+                  ip=_ip(request), detalhes={"prescricao_id": prid, "nivel": nivel})
+    return RedirectResponse(f"/assistente/paciente/{pid}?aba=prescricoes&ok=adesao", status_code=303)
+
+
+# ── Editar exame (resultado + observações + status) ───────────────────────────
+
+@router.post("/paciente/{pid}/exame/{eid}/editar")
+async def editar_exame(pid: int, eid: int, request: Request, db: Session = Depends(get_db),
+                       status: str = Form(""), resultado: str = Form(""),
+                       observacoes: str = Form("")):
+    u = _get_assistente(request, db)
+    if not u:
+        raise HTTPException(401)
+    e = db.query(Exame).filter_by(id=eid, paciente_id=pid).first()
+    if not e:
+        raise HTTPException(404)
+    if status:
+        try:
+            e.status = StatusExame[status]
+        except KeyError:
+            raise HTTPException(422, "Status inválido")
+    e.resultado   = resultado.strip()   or None
+    e.observacoes = observacoes.strip() or None
+    db.commit()
+    registrar_log(db, "edicao", "exame", usuario_id=u.id, paciente_id=pid,
+                  recurso_id=eid, ip=_ip(request))
+    return RedirectResponse(f"/assistente/paciente/{pid}?aba=exames&ok=exame_editado", status_code=303)
+
+
+# ── Upload de anexo de exame ──────────────────────────────────────────────────
+
+_TIPOS_PERMITIDOS = {"application/pdf", "image/jpeg", "image/png", "image/webp"}
+
+@router.post("/paciente/{pid}/exame/{eid}/anexo")
+async def upload_anexo(pid: int, eid: int, request: Request,
+                       db: Session = Depends(get_db),
+                       arquivo: UploadFile = File(...),
+                       nome_display: str = Form("")):
+    u = _get_assistente(request, db)
+    if not u:
+        raise HTTPException(401)
+    e = db.query(Exame).filter_by(id=eid, paciente_id=pid).first()
+    if not e:
+        raise HTTPException(404)
+    if arquivo.content_type not in _TIPOS_PERMITIDOS:
+        raise HTTPException(422, "Tipo de arquivo não permitido. Use PDF, JPEG ou PNG.")
+
+    ext    = arquivo.filename.rsplit(".", 1)[-1].lower() if "." in arquivo.filename else "bin"
+    fname  = f"{uuid.uuid4().hex}.{ext}"
+    fpath  = os.path.join(_UPLOADS_DIR, fname)
+    with open(fpath, "wb") as f:
+        shutil.copyfileobj(arquivo.file, f)
+
+    tipo = "pdf" if ext == "pdf" else "imagem"
+    db.add(AnexoExame(
+        exame_id  = eid,
+        nome      = nome_display.strip() or arquivo.filename,
+        caminho   = f"/static/uploads/{fname}",
+        tipo      = tipo,
+    ))
+    db.commit()
+    registrar_log(db, "criacao", "anexo_exame", usuario_id=u.id, paciente_id=pid,
+                  recurso_id=eid, ip=_ip(request), detalhes={"arquivo": fname})
+    return RedirectResponse(f"/assistente/paciente/{pid}?aba=exames&ok=anexo", status_code=303)
