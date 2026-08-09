@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Assistente — Pacientes</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;color:#1a1a2e}
+header{background:#1a5276;color:white;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+header h1{font-size:1rem;font-weight:700}
+nav{display:flex;gap:1rem;align-items:center;font-size:.85rem}
+nav a{color:rgba(255,255,255,.85);text-decoration:none}
+nav a:hover,nav a.ativo{color:white;font-weight:600}
+main{max-width:860px;margin:1.5rem auto;padding:0 1rem}
+.busca-row{display:flex;gap:.75rem;margin-bottom:1.25rem}
+.busca-row input{flex:1;padding:.6rem .9rem;border:1px solid #ccc;border-radius:6px;font-size:.93rem;font-family:inherit}
+.busca-row input:focus{outline:none;border-color:#1a5276}
+.busca-row button{padding:.6rem 1.2rem;background:#1a5276;color:white;border:none;border-radius:6px;font-size:.93rem;cursor:pointer;font-family:inherit}
+.card{background:white;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{text-align:left;padding:.5rem .8rem;color:#555;font-weight:600;border-bottom:2px solid #eee;background:#fafafa}
+td{padding:.6rem .8rem;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fbff}
+a.pac-link{color:#1a5276;text-decoration:none;font-weight:600}
+a.pac-link:hover{text-decoration:underline}
+.empty{padding:1.5rem;color:#999;text-align:center;font-size:.9rem}
+.total{font-size:.83rem;color:#888;margin-bottom:.6rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏥 Portal do Assistente</h1>
+  <nav>
+    <a href="/assistente/">Agenda</a>
+    <a href="/assistente/pacientes" class="ativo">Pacientes</a>
+    <a href="/assistente/logout">Sair →</a>
+  </nav>
+</header>
+<main>
+  <form method="get" action="/assistente/pacientes" class="busca-row">
+    <input name="q" value="{{ q }}" placeholder="Buscar por nome…" autofocus>
+    <button type="submit">Buscar</button>
+  </form>
+
+  {% if pacientes %}
+  <div class="total">{{ pacientes|length }} paciente(s) encontrado(s)</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>Nascimento</th><th>CPF</th><th>Telefone</th></tr>
+      </thead>
+      <tbody>
+      {% for p in pacientes %}
+        <tr>
+          <td><a class="pac-link" href="/assistente/paciente/{{ p.id }}">{{ p.nome }}</a></td>
+          <td>{{ p.data_nascimento.strftime('%d/%m/%Y') if p.data_nascimento else '—' }} <span style="color:#999;font-size:.8rem">({{ p.idade }} a)</span></td>
+          <td>{{ p.cpf or '—' }}</td>
+          <td>{{ p.telefone or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Nenhum paciente encontrado{% if q %} para "{{ q }}"{% endif %}.</div>
+  {% endif %}
+</main>
+</body>
+</html>

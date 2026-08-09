@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Assistente — Agenda do Dia</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;color:#1a1a2e}
+header{background:#1a5276;color:white;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+header h1{font-size:1rem;font-weight:700}
+nav{display:flex;gap:1rem;align-items:center;font-size:.85rem}
+nav a{color:rgba(255,255,255,.85);text-decoration:none}
+nav a:hover,nav a.ativo{color:white;font-weight:600}
+main{max-width:900px;margin:1.5rem auto;padding:0 1rem}
+.dia{font-size:1.1rem;font-weight:700;color:#1a5276;margin-bottom:1rem}
+.dia span{font-weight:400;color:#888;font-size:.9rem;margin-left:.5rem}
+.card{background:white;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:1.5rem;overflow:hidden}
+.card-header{padding:.8rem 1.1rem;border-bottom:1px solid #eee;font-weight:700;font-size:.92rem;color:#1a5276;display:flex;align-items:center;gap:.5rem}
+.card-body{padding:.75rem 1.1rem}
+table{width:100%;border-collapse:collapse;font-size:.87rem}
+th{text-align:left;padding:.45rem .6rem;color:#555;font-weight:600;border-bottom:2px solid #eee}
+td{padding:.5rem .6rem;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:700}
+.b-consulta{background:#d6eaf8;color:#1a5276}
+.b-exame{background:#d5f5e3;color:#145a32}
+.b-agendada{background:#fef9e7;color:#7d6608}
+.b-confirmada{background:#d5f5e3;color:#145a32}
+.b-cancelada{background:#fadbd8;color:#922b21}
+.b-realizada{background:#e8f0fd;color:#1a3a6e}
+a.pac-link{color:#1a5276;text-decoration:none;font-weight:600}
+a.pac-link:hover{text-decoration:underline}
+.empty{color:#999;font-size:.88rem;padding:.75rem 0}
+.proximos td{font-size:.83rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏥 Portal do Assistente</h1>
+  <nav>
+    <a href="/assistente/" class="ativo">Agenda</a>
+    <a href="/assistente/pacientes">Pacientes</a>
+    <a href="/assistente/logout">Sair →</a>
+  </nav>
+</header>
+<main>
+  <div class="dia">{{ dia_semana }}, {{ hoje }} <span>Olá, {{ assistente }}</span></div>
+
+  <div class="card">
+    <div class="card-header">📅 Agenda de hoje</div>
+    <div class="card-body">
+      {% if eventos %}
+      <table>
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Tipo</th>
+            <th>Paciente</th>
+            <th>Detalhe</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for e in eventos %}
+          <tr>
+            <td><strong>{{ e.hora }}</strong></td>
+            <td>
+              <span class="badge {{ 'b-consulta' if e.tipo == 'consulta' else 'b-exame' }}">
+                {{ 'Consulta' if e.tipo == 'consulta' else 'Exame' }}
+              </span>
+            </td>
+            <td><a class="pac-link" href="/assistente/paciente/{{ e.pac_id }}">{{ e.paciente }}</a></td>
+            <td>{{ e.detalhe }}{% if e.extra %} <span style="color:#888;font-size:.8rem">· {{ e.extra }}</span>{% endif %}</td>
+            <td><span class="badge b-{{ e.status }}">{{ e.status }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Nenhum evento agendado para hoje.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if proximos %}
+  <div class="card">
+    <div class="card-header">🗓️ Próximos 7 dias</div>
+    <div class="card-body">
+      <table class="proximos">
+        <thead>
+          <tr><th>Data</th><th>Paciente</th><th>Médico</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+        {% for c in proximos %}
+          <tr>
+            <td>{{ c.data_hora.strftime('%d/%m %H:%M') }}</td>
+            <td><a class="pac-link" href="/assistente/paciente/{{ c.paciente_id }}">{{ c.paciente.nome if c.paciente else '—' }}</a></td>
+            <td>{{ c.medico.nome if c.medico else '—' }}</td>
+            <td><span class="badge b-{{ c.status.value }}">{{ c.status.value }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</main>
+</body>
+</html>
