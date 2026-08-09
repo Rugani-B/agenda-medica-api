@@ -20,7 +20,7 @@ main{max-width:940px;margin:1.5rem auto;padding:0 1rem}
 .tab.ativo{color:#1a5276;border-bottom-color:#1a5276}
 .tab:hover{color:#1a5276}
 .card{background:white;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:1.25rem;overflow:hidden}
-.card-header{padding:.75rem 1.1rem;border-bottom:1px solid #eee;font-weight:700;font-size:.9rem;color:#1a5276;display:flex;align-items:center;justify-content:space-between}
+.card-header{padding:.75rem 1.1rem;border-bottom:1px solid #eee;font-weight:700;font-size:.9rem;color:#1a5276}
 .card-body{padding:.9rem 1.1rem}
 table{width:100%;border-collapse:collapse;font-size:.86rem}
 th{text-align:left;padding:.45rem .6rem;color:#555;font-weight:600;border-bottom:2px solid #eee}
@@ -33,23 +33,25 @@ tr:last-child td{border-bottom:none}
 .b-realizada,.b-realizado{background:#e8f0fd;color:#1a3a6e}
 .b-reagendada{background:#f0e6ff;color:#6c3483}
 .b-a_marcar{background:#f2f3f4;color:#555}
-.form-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.75rem}
+/* Formulários */
+.form-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.85rem}
 .form-group{display:flex;flex-direction:column;gap:.3rem;flex:1;min-width:150px}
 .form-group label{font-size:.81rem;font-weight:600;color:#444}
 .form-group select,.form-group input,.form-group textarea{padding:.5rem .7rem;border:1px solid #ccc;border-radius:5px;font-size:.87rem;font-family:inherit}
-.form-group textarea{resize:vertical;min-height:60px}
-.btn-sm{padding:.4rem .9rem;border:none;border-radius:5px;font-size:.83rem;font-weight:600;cursor:pointer;font-family:inherit}
+.form-group textarea{resize:vertical;min-height:72px}
+.btn-sm{padding:.42rem .95rem;border:none;border-radius:5px;font-size:.83rem;font-weight:600;cursor:pointer;font-family:inherit}
 .btn-primary{background:#1a5276;color:white}
 .btn-primary:hover{background:#154360}
 .btn-secondary{background:#ecf0f1;color:#444;border:1px solid #ccc}
 .btn-secondary:hover{background:#dfe6e9}
-.btn-danger{background:none;border:1.5px solid #c0392b;color:#c0392b;padding:.3rem .7rem;border-radius:5px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-danger{background:none;border:1.5px solid #c0392b;color:#c0392b;padding:.28rem .65rem;border-radius:5px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
 .btn-danger:hover{background:#fadbd8}
-.btn-link{background:none;border:none;color:#1a5276;font-size:.82rem;cursor:pointer;text-decoration:underline;font-family:inherit;padding:0}
+.btn-link{background:none;border:none;color:#1a5276;font-size:.81rem;cursor:pointer;text-decoration:none;font-family:inherit;padding:0;white-space:nowrap}
+.btn-link:hover{text-decoration:underline}
 .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem}
 .info-item label{font-size:.78rem;color:#888;display:block;margin-bottom:.15rem}
 .info-item span{font-size:.9rem;font-weight:600}
-.presc-card{border:1px solid #e0e0e0;border-radius:6px;padding:.75rem;margin-bottom:.75rem}
+.presc-card{border:1px solid #e0e0e0;border-radius:6px;padding:.85rem;margin-bottom:.75rem}
 .presc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:.5rem}
 .presc-title{font-weight:700;font-size:.88rem;color:#1a5276}
 .med-list{list-style:none;font-size:.84rem;margin-top:.4rem}
@@ -57,23 +59,30 @@ tr:last-child td{border-bottom:none}
 .med-list li:last-child{border-bottom:none}
 .med-nome{font-weight:600}
 .med-info{color:#888;font-size:.78rem}
-.adesao-bar{height:7px;border-radius:4px;margin-top:.4rem}
 .empty{color:#999;font-size:.87rem;padding:.5rem 0}
 .msg-ok{background:#d5f5e3;border:1px solid #27ae60;border-radius:6px;padding:.6rem 1rem;color:#145a32;font-size:.85rem;margin-bottom:1rem}
-/* Painéis expansíveis */
-.panel{display:none;background:#f8fbff;border:1px solid #d0e8f8;border-radius:6px;padding:.85rem 1rem;margin-top:.75rem}
-.panel.aberto{display:block}
-/* Linha de med no form prescrição */
-.med-row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:.5rem;padding-bottom:.5rem;border-bottom:1px solid #eee}
+/* MODAL */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:center;justify-content:center}
+.modal-backdrop.aberto{display:flex}
+.modal{background:white;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.2);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;margin:1rem}
+.modal-header{padding:.9rem 1.2rem;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:1rem;color:#1a5276;font-weight:700}
+.modal-close{background:none;border:none;font-size:1.4rem;cursor:pointer;color:#888;line-height:1}
+.modal-close:hover{color:#333}
+.modal-body{padding:1.1rem 1.2rem}
+.modal-footer{padding:.75rem 1.2rem;border-top:1px solid #eee;display:flex;gap:.6rem;justify-content:flex-end}
+/* Linhas de medicamento */
+.med-row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;padding:.5rem 0;border-bottom:1px solid #f0f0f0}
 .med-row:last-child{border-bottom:none}
 .med-row .fg{display:flex;flex-direction:column;gap:.2rem}
 .med-row .fg label{font-size:.78rem;font-weight:600;color:#555}
-.med-row .fg select,.med-row .fg input{padding:.38rem .6rem;border:1px solid #ccc;border-radius:4px;font-size:.84rem;font-family:inherit}
+.med-row .fg select,.med-row .fg input{padding:.38rem .6rem;border:1px solid #ccc;border-radius:4px;font-size:.84rem;font-family:inherit;min-width:120px}
 /* Anexos */
-.anexo-item{display:flex;align-items:center;gap:.5rem;font-size:.84rem;padding:.3rem 0;border-bottom:1px solid #f0f0f0}
+.anexo-item{display:flex;align-items:center;gap:.5rem;font-size:.84rem;padding:.3rem 0;border-bottom:1px solid #f5f5f5}
 .anexo-item:last-child{border-bottom:none}
 .anexo-item a{color:#1a5276;text-decoration:none}
 .anexo-item a:hover{text-decoration:underline}
+.acoes{display:flex;gap:.4rem;flex-wrap:nowrap}
 </style>
 </head>
 <body>
@@ -182,77 +191,21 @@ tr:last-child td{border-bottom:none}
     <div class="card-body">
       {% if consultas %}
       <table>
-        <thead><tr><th>Data/Hora</th><th>Médico</th><th>Status</th><th>Observações</th><th style="width:200px">Ações</th></tr></thead>
+        <thead><tr><th>Data/Hora</th><th>Médico</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead>
         <tbody>
         {% for c in consultas %}
           <tr>
             <td>{{ c.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
             <td>{{ c.medico.nome if c.medico else '—' }}</td>
             <td><span class="badge b-{{ c.status.value }}">{{ c.status.value }}</span></td>
-            <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{{ c.observacoes or '' }}">{{ c.observacoes or '—' }}</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{{ c.observacoes or '' }}">{{ c.observacoes or '—' }}</td>
             <td>
-              <button class="btn-link" onclick="toggle('edit-c-{{ c.id }}')">✏️ Editar</button>
-              &nbsp;
-              <button class="btn-link" onclick="toggle('presc-c-{{ c.id }}')">💊 Prescrição</button>
-              {% if c.status.value not in ('cancelada','realizada') %}
-              &nbsp;<button class="btn-danger" onclick="cancelarConsulta({{ c.id }})">✕</button>
-              {% endif %}
-
-              <!-- Painel editar consulta -->
-              <div id="edit-c-{{ c.id }}" class="panel">
-                <form method="post" action="/assistente/paciente/{{ pac.id }}/consulta/{{ c.id }}/editar">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label>Status</label>
-                      <select name="status">
-                        {% for s in status_consulta %}<option value="{{ s }}" {{ 'selected' if s == c.status.value }}>{{ s }}</option>{% endfor %}
-                      </select>
-                    </div>
-                    <div class="form-group" style="flex:3">
-                      <label>Observações</label>
-                      <textarea name="observacoes">{{ c.observacoes or '' }}</textarea>
-                    </div>
-                  </div>
-                  <button class="btn-sm btn-primary" type="submit">Salvar</button>
-                  <button class="btn-sm btn-secondary" type="button" onclick="toggle('edit-c-{{ c.id }}')">Cancelar</button>
-                </form>
-              </div>
-
-              <!-- Painel adicionar prescrição -->
-              <div id="presc-c-{{ c.id }}" class="panel">
-                <form method="post" action="/assistente/paciente/{{ pac.id }}/consulta/{{ c.id }}/prescricao">
-                  <div style="font-size:.82rem;font-weight:600;color:#444;margin-bottom:.5rem">Medicamentos</div>
-                  <div id="meds-{{ c.id }}">
-                    <div class="med-row">
-                      <div class="fg"><label>Medicamento *</label>
-                        <select name="medicamento_id" required>
-                          <option value="">Selecione…</option>
-                          {% for m in medicamentos %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}
-                        </select>
-                      </div>
-                      <div class="fg"><label>Dose</label><input type="text" name="dose" placeholder="ex: 500mg"></div>
-                      <div class="fg"><label>Frequência</label><input type="text" name="frequencia" placeholder="ex: 8/8h"></div>
-                      <div class="fg"><label>Duração</label><input type="text" name="duracao" placeholder="ex: 7 dias"></div>
-                    </div>
-                  </div>
-                  <button type="button" class="btn-sm btn-secondary" style="margin-bottom:.75rem" onclick="addMed('meds-{{ c.id }}', {{ c.id }})">+ Medicamento</button>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label>Início do tratamento</label>
-                      <input type="date" name="semana_inicio">
-                    </div>
-                    <div class="form-group">
-                      <label>Fim do tratamento</label>
-                      <input type="date" name="semana_fim">
-                    </div>
-                    <div class="form-group" style="flex:2">
-                      <label>Observações</label>
-                      <textarea name="observacoes" placeholder="Instruções gerais"></textarea>
-                    </div>
-                  </div>
-                  <button class="btn-sm btn-primary" type="submit">Salvar prescrição</button>
-                  <button class="btn-sm btn-secondary" type="button" onclick="toggle('presc-c-{{ c.id }}')">Cancelar</button>
-                </form>
+              <div class="acoes">
+                <button class="btn-link" onclick="abrirModal('modal-edit-c-{{ c.id }}')">✏️ Editar</button>
+                <button class="btn-link" onclick="abrirModal('modal-presc-c-{{ c.id }}')">💊 Prescrição</button>
+                {% if c.status.value not in ('cancelada','realizada') %}
+                <button class="btn-danger" onclick="cancelarConsulta({{ c.id }})">✕</button>
+                {% endif %}
               </div>
             </td>
           </tr>
@@ -265,6 +218,89 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 
+  {# ── Modais de consulta ── #}
+  {% for c in consultas %}
+
+  <!-- Modal: Editar consulta -->
+  <div id="modal-edit-c-{{ c.id }}" class="modal-backdrop" onclick="fecharSeFora(event,this)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>✏️ Editar consulta — {{ c.data_hora.strftime('%d/%m/%Y %H:%M') }}</h3>
+        <button class="modal-close" onclick="fecharModal('modal-edit-c-{{ c.id }}')">&times;</button>
+      </div>
+      <form method="post" action="/assistente/paciente/{{ pac.id }}/consulta/{{ c.id }}/editar">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select name="status">
+                {% for s in status_consulta %}<option value="{{ s }}" {{ 'selected' if s == c.status.value }}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Observações</label>
+            <textarea name="observacoes">{{ c.observacoes or '' }}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-sm btn-secondary" type="button" onclick="fecharModal('modal-edit-c-{{ c.id }}')">Cancelar</button>
+          <button class="btn-sm btn-primary" type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Adicionar prescrição -->
+  <div id="modal-presc-c-{{ c.id }}" class="modal-backdrop" onclick="fecharSeFora(event,this)">
+    <div class="modal" style="max-width:680px">
+      <div class="modal-header">
+        <h3>💊 Nova prescrição — consulta {{ c.data_hora.strftime('%d/%m/%Y') }}</h3>
+        <button class="modal-close" onclick="fecharModal('modal-presc-c-{{ c.id }}')">&times;</button>
+      </div>
+      <form method="post" action="/assistente/paciente/{{ pac.id }}/consulta/{{ c.id }}/prescricao">
+        <div class="modal-body">
+          <div style="font-size:.82rem;font-weight:600;color:#444;margin-bottom:.5rem">Medicamentos</div>
+          <div id="meds-modal-{{ c.id }}">
+            <div class="med-row">
+              <div class="fg"><label>Medicamento *</label>
+                <select name="medicamento_id" required>
+                  <option value="">Selecione…</option>
+                  {% for m in medicamentos %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="fg"><label>Dose</label><input type="text" name="dose" placeholder="ex: 500mg"></div>
+              <div class="fg"><label>Frequência</label><input type="text" name="frequencia" placeholder="ex: 8/8h"></div>
+              <div class="fg"><label>Duração</label><input type="text" name="duracao" placeholder="ex: 7 dias"></div>
+            </div>
+          </div>
+          <button type="button" class="btn-sm btn-secondary" style="margin:.6rem 0"
+                  onclick="addMed('meds-modal-{{ c.id }}','modal-presc-c-{{ c.id }}')">+ Medicamento</button>
+          <div class="form-row" style="margin-top:.5rem">
+            <div class="form-group">
+              <label>Início do tratamento</label>
+              <input type="date" name="semana_inicio">
+            </div>
+            <div class="form-group">
+              <label>Fim do tratamento</label>
+              <input type="date" name="semana_fim">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Observações gerais</label>
+            <textarea name="observacoes" placeholder="Instruções, alertas…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-sm btn-secondary" type="button" onclick="fecharModal('modal-presc-c-{{ c.id }}')">Cancelar</button>
+          <button class="btn-sm btn-primary" type="submit">Salvar prescrição</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% endfor %}
+
   {# ═══════════════════ ABA PRESCRIÇÕES ═══════════════════ #}
   {% elif aba == 'prescricoes' %}
   <div class="card">
@@ -275,7 +311,7 @@ tr:last-child td{border-bottom:none}
         <div class="presc-card">
           <div class="presc-header">
             <span class="presc-title">{{ p.medico }} · {{ p.inicio }} → {{ p.fim }}</span>
-            <button class="btn-sm btn-secondary" onclick="toggle('adesao-{{ p.id }}')">📋 Registrar adesão</button>
+            <button class="btn-sm btn-secondary" onclick="abrirModal('modal-adesao-{{ p.id }}')">📋 Registrar adesão</button>
           </div>
           {% if p.observacoes %}<div style="font-size:.82rem;color:#555;margin-bottom:.4rem">{{ p.observacoes }}</div>{% endif %}
           <ul class="med-list">
@@ -291,31 +327,42 @@ tr:last-child td{border-bottom:none}
             </div>
           </div>
           {% endif %}
+        </div>
 
-          <!-- Painel registrar adesão -->
-          <div id="adesao-{{ p.id }}" class="panel">
+        <!-- Modal: Registrar adesão -->
+        <div id="modal-adesao-{{ p.id }}" class="modal-backdrop" onclick="fecharSeFora(event,this)">
+          <div class="modal">
+            <div class="modal-header">
+              <h3>📋 Registrar adesão</h3>
+              <button class="modal-close" onclick="fecharModal('modal-adesao-{{ p.id }}')">&times;</button>
+            </div>
             <form method="post" action="/assistente/paciente/{{ pac.id }}/prescricao/{{ p.id }}/adesao">
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Semana (segunda-feira) *</label>
-                  <input type="date" name="semana" required>
+              <div class="modal-body">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Semana (segunda-feira) *</label>
+                    <input type="date" name="semana" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Nível de adesão *</label>
+                    <select name="nivel" required>
+                      {% for n in niveis_adesao %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+                    </select>
+                  </div>
                 </div>
                 <div class="form-group">
-                  <label>Nível de adesão *</label>
-                  <select name="nivel" required>
-                    {% for n in niveis_adesao %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
-                  </select>
-                </div>
-                <div class="form-group" style="flex:2">
                   <label>Observações</label>
                   <input type="text" name="observacoes" placeholder="Opcional">
                 </div>
               </div>
-              <button class="btn-sm btn-primary" type="submit">Registrar</button>
-              <button class="btn-sm btn-secondary" type="button" onclick="toggle('adesao-{{ p.id }}')">Cancelar</button>
+              <div class="modal-footer">
+                <button class="btn-sm btn-secondary" type="button" onclick="fecharModal('modal-adesao-{{ p.id }}')">Cancelar</button>
+                <button class="btn-sm btn-primary" type="submit">Registrar</button>
+              </div>
             </form>
           </div>
         </div>
+
         {% endfor %}
       {% else %}
       <div class="empty">Nenhuma prescrição ativa.</div>
@@ -330,7 +377,7 @@ tr:last-child td{border-bottom:none}
     <div class="card-body">
       {% if exames %}
       <table>
-        <thead><tr><th>Data/Hora</th><th>Tipo</th><th>Local</th><th>Status</th><th style="width:160px">Ações</th></tr></thead>
+        <thead><tr><th>Data/Hora</th><th>Tipo</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>
         {% for e in exames %}
           <tr>
@@ -339,57 +386,9 @@ tr:last-child td{border-bottom:none}
             <td>{{ e.local.nome if e.local else '—' }}</td>
             <td><span class="badge b-{{ e.status.value }}">{{ e.status.value }}</span></td>
             <td>
-              <button class="btn-link" onclick="toggle('edit-e-{{ e.id }}')">✏️ Editar</button>
-              &nbsp;
-              <button class="btn-link" onclick="toggle('anexo-e-{{ e.id }}')">📎 Anexar</button>
-
-              <!-- Painel editar exame -->
-              <div id="edit-e-{{ e.id }}" class="panel">
-                <form method="post" action="/assistente/paciente/{{ pac.id }}/exame/{{ e.id }}/editar">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label>Status</label>
-                      <select name="status">
-                        {% for s in status_exame %}<option value="{{ s }}" {{ 'selected' if s == e.status.value }}>{{ s }}</option>{% endfor %}
-                      </select>
-                    </div>
-                    <div class="form-group" style="flex:2">
-                      <label>Observações</label>
-                      <textarea name="observacoes">{{ e.observacoes or '' }}</textarea>
-                    </div>
-                    <div class="form-group" style="flex:2">
-                      <label>Resultado</label>
-                      <textarea name="resultado">{{ e.resultado or '' }}</textarea>
-                    </div>
-                  </div>
-                  <button class="btn-sm btn-primary" type="submit">Salvar</button>
-                  <button class="btn-sm btn-secondary" type="button" onclick="toggle('edit-e-{{ e.id }}')">Cancelar</button>
-                </form>
-              </div>
-
-              <!-- Painel anexar arquivo -->
-              <div id="anexo-e-{{ e.id }}" class="panel">
-                {% if e.anexos %}
-                <div style="margin-bottom:.6rem">
-                  {% for a in e.anexos %}
-                  <div class="anexo-item">📄 <a href="{{ a.caminho }}" target="_blank">{{ a.nome }}</a></div>
-                  {% endfor %}
-                </div>
-                {% endif %}
-                <form method="post" action="/assistente/paciente/{{ pac.id }}/exame/{{ e.id }}/anexo" enctype="multipart/form-data">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label>Arquivo (PDF, JPEG, PNG)</label>
-                      <input type="file" name="arquivo" accept=".pdf,.jpg,.jpeg,.png,.webp" required>
-                    </div>
-                    <div class="form-group">
-                      <label>Nome de exibição</label>
-                      <input type="text" name="nome_display" placeholder="ex: Resultado hemograma">
-                    </div>
-                  </div>
-                  <button class="btn-sm btn-primary" type="submit">Enviar arquivo</button>
-                  <button class="btn-sm btn-secondary" type="button" onclick="toggle('anexo-e-{{ e.id }}')">Cancelar</button>
-                </form>
+              <div class="acoes">
+                <button class="btn-link" onclick="abrirModal('modal-edit-e-{{ e.id }}')">✏️ Editar</button>
+                <button class="btn-link" onclick="abrirModal('modal-anexo-e-{{ e.id }}')">📎 Anexar</button>
               </div>
             </td>
           </tr>
@@ -401,6 +400,79 @@ tr:last-child td{border-bottom:none}
       {% endif %}
     </div>
   </div>
+
+  {# ── Modais de exame ── #}
+  {% for e in exames %}
+
+  <!-- Modal: Editar exame -->
+  <div id="modal-edit-e-{{ e.id }}" class="modal-backdrop" onclick="fecharSeFora(event,this)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>✏️ Editar exame — {{ e.tipo_exame.nome if e.tipo_exame else 'Exame' }}</h3>
+        <button class="modal-close" onclick="fecharModal('modal-edit-e-{{ e.id }}')">&times;</button>
+      </div>
+      <form method="post" action="/assistente/paciente/{{ pac.id }}/exame/{{ e.id }}/editar">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select name="status">
+                {% for s in status_exame %}<option value="{{ s }}" {{ 'selected' if s == e.status.value }}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:.75rem">
+            <label>Observações</label>
+            <textarea name="observacoes">{{ e.observacoes or '' }}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Resultado</label>
+            <textarea name="resultado" style="min-height:90px">{{ e.resultado or '' }}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-sm btn-secondary" type="button" onclick="fecharModal('modal-edit-e-{{ e.id }}')">Cancelar</button>
+          <button class="btn-sm btn-primary" type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Anexar arquivo -->
+  <div id="modal-anexo-e-{{ e.id }}" class="modal-backdrop" onclick="fecharSeFora(event,this)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>📎 Anexar arquivo — {{ e.tipo_exame.nome if e.tipo_exame else 'Exame' }}</h3>
+        <button class="modal-close" onclick="fecharModal('modal-anexo-e-{{ e.id }}')">&times;</button>
+      </div>
+      <div class="modal-body">
+        {% if e.anexos %}
+        <div style="margin-bottom:1rem">
+          <div style="font-size:.82rem;font-weight:600;color:#444;margin-bottom:.4rem">Arquivos já anexados:</div>
+          {% for a in e.anexos %}
+          <div class="anexo-item">📄 <a href="{{ a.caminho }}" target="_blank">{{ a.nome }}</a></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <form method="post" action="/assistente/paciente/{{ pac.id }}/exame/{{ e.id }}/anexo" enctype="multipart/form-data">
+          <div class="form-group" style="margin-bottom:.75rem">
+            <label>Arquivo (PDF, JPEG ou PNG) *</label>
+            <input type="file" name="arquivo" accept=".pdf,.jpg,.jpeg,.png,.webp" required>
+          </div>
+          <div class="form-group">
+            <label>Nome de exibição</label>
+            <input type="text" name="nome_display" placeholder="ex: Resultado hemograma">
+          </div>
+          <div class="modal-footer" style="margin:1rem -1.2rem -1.1rem;padding:.75rem 1.2rem">
+            <button class="btn-sm btn-secondary" type="button" onclick="fecharModal('modal-anexo-e-{{ e.id }}')">Cancelar</button>
+            <button class="btn-sm btn-primary" type="submit">Enviar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% endfor %}
 
   {# ═══════════════════ ABA DADOS ═══════════════════ #}
   {% elif aba == 'dados' %}
@@ -423,10 +495,28 @@ tr:last-child td{border-bottom:none}
 </main>
 
 <script>
-function toggle(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.toggle('aberto');
+function abrirModal(id) {
+  document.getElementById(id).classList.add('aberto');
+  document.body.style.overflow = 'hidden';
 }
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('aberto');
+  document.body.style.overflow = '';
+}
+function fecharSeFora(e, backdrop) {
+  if (e.target === backdrop) {
+    backdrop.classList.remove('aberto');
+    document.body.style.overflow = '';
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop.aberto').forEach(m => {
+      m.classList.remove('aberto');
+      document.body.style.overflow = '';
+    });
+  }
+});
 
 async function cancelarConsulta(id) {
   if (!confirm('Cancelar esta consulta?')) return;
@@ -435,23 +525,22 @@ async function cancelarConsulta(id) {
   else alert('Erro ao cancelar.');
 }
 
-// Adiciona linha de medicamento ao formulário de prescrição
-function addMed(containerId, cid) {
+function addMed(containerId, modalId) {
   const container = document.getElementById(containerId);
-  const select_html = `{{ medicamentos | map(attribute='nome') | list }}`;  // não usado diretamente
-  const opts = Array.from(document.querySelectorAll(`#presc-c-${cid} select[name="medicamento_id"] option`))
-    .map(o => `<option value="${o.value}">${o.text}</option>`).join('');
+  const firstSelect = container.querySelector('select[name="medicamento_id"]');
+  const opts = Array.from(firstSelect.options).map(o => `<option value="${o.value}">${o.text}</option>`).join('');
   const div = document.createElement('div');
   div.className = 'med-row';
   div.innerHTML = `
     <div class="fg"><label>Medicamento *</label>
-      <select name="medicamento_id" required><option value="">Selecione…</option>${opts}</select>
-    </div>
+      <select name="medicamento_id" required>${opts}</select></div>
     <div class="fg"><label>Dose</label><input type="text" name="dose" placeholder="ex: 500mg"></div>
     <div class="fg"><label>Frequência</label><input type="text" name="frequencia" placeholder="ex: 8/8h"></div>
     <div class="fg"><label>Duração</label><input type="text" name="duracao" placeholder="ex: 7 dias"></div>
-    <div class="fg" style="justify-content:flex-end"><button type="button" onclick="this.closest('.med-row').remove()" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:1.1rem">✕</button></div>
-  `;
+    <div class="fg" style="align-self:flex-end">
+      <button type="button" onclick="this.closest('.med-row').remove()"
+        style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:1.1rem;padding:.38rem 0">✕</button>
+    </div>`;
   container.appendChild(div);
 }
 </script>
