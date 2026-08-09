@@ -85,8 +85,8 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <main>
-  {% if request.query_params.get('ok') %}
-  <div class="msg-ok">✅ {{ 'Consulta agendada com sucesso.' if request.query_params.get('ok') == 'consulta' else 'Exame agendado com sucesso.' }}</div>
+  {% if ok %}
+  <div class="msg-ok">✅ {{ 'Consulta agendada com sucesso.' if ok == 'consulta' else 'Exame agendado com sucesso.' }}</div>
   {% endif %}
 
   <!-- Tabs -->

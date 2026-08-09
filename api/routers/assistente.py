@@ -244,8 +244,9 @@ def detalhe_paciente(pid: int, request: Request, aba: str = "agenda",
     registrar_log(db, "leitura", "paciente", usuario_id=u.id, paciente_id=pid,
                   ip=_ip(request), detalhes={"aba": aba})
 
+    ok = request.query_params.get("ok", "")
     return _render("assistente_paciente.html",
-                   assistente=u.nome, pac=pac, aba=aba,
+                   assistente=u.nome, pac=pac, aba=aba, ok=ok,
                    hoje=hoje,
                    consultas=consultas, exames=exames,
                    prescricoes=presc_data,
