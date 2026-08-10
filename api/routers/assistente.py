@@ -225,8 +225,9 @@ def detalhe_paciente(pid: int, request: Request, aba: str = "agenda",
     )
     presc_data = []
     for p in prescricoes:
-        ultima_adesao = sorted(p.adesoes, key=lambda a: a.semana, reverse=True)
-        nivel = ultima_adesao[0].nivel.value if ultima_adesao else None
+        adesoes_ord = sorted(p.adesoes, key=lambda a: a.semana, reverse=True)
+        ultima = adesoes_ord[0] if adesoes_ord else None
+        nivel = ultima.nivel.value if ultima else None
         label, pct_str, cor = NIVEL_LABELS.get(nivel, ("—", "—", "#ccc")) if nivel else ("—", "—", "#ccc")
         presc_data.append({
             "id":          p.id,
@@ -241,6 +242,16 @@ def detalhe_paciente(pid: int, request: Request, aba: str = "agenda",
             "adesao_nivel": nivel,
             "adesao_label": label,
             "adesao_cor":   cor,
+            "historico_adesao": [
+                {
+                    "semana": a.semana.strftime("%d/%m/%Y"),
+                    "nivel":  a.nivel.value,
+                    "label":  NIVEL_LABELS.get(a.nivel.value, ("—","—","#ccc"))[0],
+                    "cor":    NIVEL_LABELS.get(a.nivel.value, ("—","—","#ccc"))[2],
+                    "obs":    a.observacoes or "",
+                }
+                for a in adesoes_ord
+            ],
         })
 
     # Dados auxiliares para formulários
