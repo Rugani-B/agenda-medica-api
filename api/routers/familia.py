@@ -650,10 +650,14 @@ def servir_anexo(
         return Redirect(url=caminho, status_code=302)
 
     import mimetypes
-    if not os.path.exists(caminho):
-        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
-    mt, _ = mimetypes.guess_type(caminho)
-    return FileResponse(path=caminho, media_type=mt or "application/octet-stream",
+    # caminho salvo como URL (/static/uploads/arquivo.pdf); resolve para filesystem
+    _uploads_base = os.path.join(os.path.dirname(__file__), "..", "static", "uploads")
+    fname = caminho.lstrip("/").replace("static/uploads/", "", 1)
+    fpath = os.path.normpath(os.path.join(_uploads_base, fname))
+    if not os.path.exists(fpath):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado no servidor")
+    mt, _ = mimetypes.guess_type(fpath)
+    return FileResponse(path=fpath, media_type=mt or "application/octet-stream",
                         filename=anexo.nome)
 
 

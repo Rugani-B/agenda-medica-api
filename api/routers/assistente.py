@@ -507,18 +507,38 @@ async def upload_anexo(pid: int, eid: int, request: Request,
     if arquivo.content_type not in _TIPOS_PERMITIDOS:
         raise HTTPException(422, "Tipo de arquivo não permitido. Use PDF, JPEG ou PNG.")
 
-    ext    = arquivo.filename.rsplit(".", 1)[-1].lower() if "." in arquivo.filename else "bin"
-    fname  = f"{uuid.uuid4().hex}.{ext}"
-    fpath  = os.path.join(_UPLOADS_DIR, fname)
+    ext   = arquivo.filename.rsplit(".", 1)[-1].lower() if "." in arquivo.filename else "bin"
+    fname = f"{uuid.uuid4().hex}.{ext}"
+    fpath = os.path.join(_UPLOADS_DIR, fname)
+
+    # Salva temporariamente em disco para fazer upload para nuvem
     with open(fpath, "wb") as f:
         shutil.copyfileobj(arquivo.file, f)
 
+    try:
+        if ext == "pdf":
+            from app.services.supabase_service import upload_pdf
+            url_nuvem = upload_pdf(fpath, pid, fname)
+        else:
+            from app.services.cloudinary_service import upload_anexo as cloud_upload
+            url_nuvem = cloud_upload(fpath, pid, fname)
+    except Exception as exc:
+        # fallback: mantém arquivo local (não persistente no Railway)
+        url_nuvem = f"/static/uploads/{fname}"
+        registrar_log(db, "erro", "anexo_upload_nuvem", usuario_id=u.id, paciente_id=pid,
+                      ip=_ip(request), detalhes={"erro": str(exc)})
+    finally:
+        try:
+            os.remove(fpath)
+        except OSError:
+            pass
+
     tipo = "pdf" if ext == "pdf" else "imagem"
     db.add(AnexoExame(
-        exame_id  = eid,
-        nome      = nome_display.strip() or arquivo.filename,
-        caminho   = f"/static/uploads/{fname}",
-        tipo      = tipo,
+        exame_id = eid,
+        nome     = nome_display.strip() or arquivo.filename,
+        caminho  = url_nuvem,
+        tipo     = tipo,
     ))
     db.commit()
     registrar_log(db, "criacao", "anexo_exame", usuario_id=u.id, paciente_id=pid,
