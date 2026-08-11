@@ -516,12 +516,8 @@ async def upload_anexo(pid: int, eid: int, request: Request,
         shutil.copyfileobj(arquivo.file, f)
 
     try:
-        if ext == "pdf":
-            from app.services.supabase_service import upload_pdf
-            url_nuvem = upload_pdf(fpath, pid, fname)
-        else:
-            from app.services.cloudinary_service import upload_anexo as cloud_upload
-            url_nuvem = cloud_upload(fpath, pid, fname)
+        from app.services.cloudinary_service import upload_anexo as cloud_upload
+        url_nuvem = cloud_upload(fpath, pid, fname)
     except Exception as exc:
         # fallback: mantém arquivo local (não persistente no Railway)
         url_nuvem = f"/static/uploads/{fname}"
