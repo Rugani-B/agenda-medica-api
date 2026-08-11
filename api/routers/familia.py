@@ -647,19 +647,31 @@ def servir_anexo(
 
     caminho = anexo.caminho or ""
     if caminho.startswith("http"):
-        # PDFs do Cloudinary são servidos como octet-stream; fazemos proxy para corrigir
-        if "cloudinary.com" in caminho and caminho.lower().endswith(".pdf"):
-            import httpx
-            from fastapi.responses import Response as RawResponse
-            try:
-                r = httpx.get(caminho, follow_redirects=True, timeout=30)
-                return RawResponse(
-                    content=r.content,
-                    media_type="application/pdf",
-                    headers={"Content-Disposition": f'inline; filename="{anexo.nome}"'},
+        if "cloudinary.com" in caminho:
+            # Gera URL assinada temporária (15 min) para arquivos privados do Cloudinary
+            import time, cloudinary, cloudinary.utils
+            cloudinary.config(
+                cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+                api_key=os.getenv("CLOUDINARY_API_KEY"),
+                api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+                secure=True,
+            )
+            # Extrai public_id da URL: tudo após /raw/upload/vXXX/ ou /image/upload/vXXX/
+            m = re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
+            if m:
+                public_id = m.group(1)
+                # Remove extensão do public_id (Cloudinary não a quer no id)
+                public_id_sem_ext = re.sub(r'\.[^.]+$', '', public_id)
+                resource_type = "raw" if caminho.lower().endswith(".pdf") else "image"
+                signed_url, _ = cloudinary.utils.cloudinary_url(
+                    public_id_sem_ext,
+                    resource_type=resource_type,
+                    format=public_id.rsplit('.', 1)[-1] if '.' in public_id else '',
+                    sign_url=True,
+                    type="upload",
+                    expires_at=int(time.time()) + 900,
                 )
-            except Exception:
-                pass  # fallback: redireciona mesmo assim
+                return Redirect(url=signed_url, status_code=302)
         return Redirect(url=caminho, status_code=302)
 
     # Caminho local do Windows (desktop app sem nuvem configurada) — não acessível no servidor
