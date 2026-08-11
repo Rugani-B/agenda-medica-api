@@ -647,6 +647,19 @@ def servir_anexo(
 
     caminho = anexo.caminho or ""
     if caminho.startswith("http"):
+        # PDFs do Cloudinary são servidos como octet-stream; fazemos proxy para corrigir
+        if "cloudinary.com" in caminho and caminho.lower().endswith(".pdf"):
+            import httpx
+            from fastapi.responses import Response as RawResponse
+            try:
+                r = httpx.get(caminho, follow_redirects=True, timeout=30)
+                return RawResponse(
+                    content=r.content,
+                    media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{anexo.nome}"'},
+                )
+            except Exception:
+                pass  # fallback: redireciona mesmo assim
         return Redirect(url=caminho, status_code=302)
 
     # Caminho local do Windows (desktop app sem nuvem configurada) — não acessível no servidor
