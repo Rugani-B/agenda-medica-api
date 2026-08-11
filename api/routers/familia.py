@@ -649,13 +649,23 @@ def servir_anexo(
     if caminho.startswith("http"):
         return Redirect(url=caminho, status_code=302)
 
-    import mimetypes
-    # caminho salvo como URL (/static/uploads/arquivo.pdf); resolve para filesystem
+    # Caminho local do Windows (desktop app sem nuvem configurada) — não acessível no servidor
+    import re, mimetypes
+    if re.match(r'^[A-Za-z]:[\\\/]', caminho):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Arquivo armazenado apenas localmente (desktop). Caminho: {caminho}"
+        )
+
+    # caminho salvo como URL relativa (/static/uploads/arquivo.pdf)
     _uploads_base = os.path.join(os.path.dirname(__file__), "..", "static", "uploads")
     fname = caminho.lstrip("/").replace("static/uploads/", "", 1)
     fpath = os.path.normpath(os.path.join(_uploads_base, fname))
     if not os.path.exists(fpath):
-        raise HTTPException(status_code=404, detail="Arquivo não encontrado no servidor")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Arquivo não encontrado. Caminho registrado: {caminho!r}"
+        )
     mt, _ = mimetypes.guess_type(fpath)
     return FileResponse(path=fpath, media_type=mt or "application/octet-stream",
                         filename=anexo.nome)
