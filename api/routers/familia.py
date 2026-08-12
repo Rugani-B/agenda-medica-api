@@ -648,27 +648,36 @@ def servir_anexo(
     caminho = anexo.caminho or ""
     if caminho.startswith("http"):
         if "cloudinary.com" in caminho:
-            import time, cloudinary, cloudinary.utils
-            cloudinary.config(
-                cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-                api_key=os.getenv("CLOUDINARY_API_KEY"),
-                api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-                secure=True,
-            )
+            # Proxy autenticado: busca o arquivo do Cloudinary e entrega ao usuário
+            import httpx, base64
+            api_key    = os.getenv("CLOUDINARY_API_KEY", "")
+            api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
+            cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
+            # Monta URL de download via API autenticada do Cloudinary
             m = re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
             if m:
                 public_id_com_ext = m.group(1)
-                public_id = re.sub(r'\.[^.]+$', '', public_id_com_ext)
-                fmt = public_id_com_ext.rsplit('.', 1)[-1] if '.' in public_id_com_ext else ''
+                fmt = public_id_com_ext.rsplit('.', 1)[-1].lower() if '.' in public_id_com_ext else ''
                 resource_type = "raw" if fmt == "pdf" else "image"
-                # private_download_url usa endpoint API autenticado — sem restrição CDN
-                dl_url = cloudinary.utils.private_download_url(
-                    public_id,
-                    fmt,
-                    resource_type=resource_type,
-                    expires_at=int(time.time()) + 900,
+                public_id = re.sub(r'\.[^.]+$', '', public_id_com_ext)
+                api_url = (
+                    f"https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/download"
+                    f"?public_id={public_id}&format={fmt}"
                 )
-                return Redirect(url=dl_url, status_code=302)
+                creds = base64.b64encode(f"{api_key}:{api_secret}".encode()).decode()
+                try:
+                    r = httpx.get(api_url, headers={"Authorization": f"Basic {creds}"},
+                                  follow_redirects=True, timeout=30)
+                    if r.status_code == 200:
+                        from fastapi.responses import Response as RawResponse
+                        media = "application/pdf" if fmt == "pdf" else r.headers.get("content-type", "application/octet-stream")
+                        return RawResponse(
+                            content=r.content,
+                            media_type=media,
+                            headers={"Content-Disposition": f'inline; filename="{anexo.nome}"'},
+                        )
+                except Exception:
+                    pass
         return Redirect(url=caminho, status_code=302)
 
     # Caminho local do Windows (desktop app sem nuvem configurada) — não acessível no servidor
