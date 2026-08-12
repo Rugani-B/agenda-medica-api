@@ -648,7 +648,6 @@ def servir_anexo(
     caminho = anexo.caminho or ""
     if caminho.startswith("http"):
         if "cloudinary.com" in caminho:
-            # Gera URL assinada temporária (15 min) para arquivos privados do Cloudinary
             import time, cloudinary, cloudinary.utils
             cloudinary.config(
                 cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -656,22 +655,20 @@ def servir_anexo(
                 api_secret=os.getenv("CLOUDINARY_API_SECRET"),
                 secure=True,
             )
-            # Extrai public_id da URL: tudo após /raw/upload/vXXX/ ou /image/upload/vXXX/
             m = re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
             if m:
-                public_id = m.group(1)
-                # Remove extensão do public_id (Cloudinary não a quer no id)
-                public_id_sem_ext = re.sub(r'\.[^.]+$', '', public_id)
-                resource_type = "raw" if caminho.lower().endswith(".pdf") else "image"
-                signed_url, _ = cloudinary.utils.cloudinary_url(
-                    public_id_sem_ext,
+                public_id_com_ext = m.group(1)
+                public_id = re.sub(r'\.[^.]+$', '', public_id_com_ext)
+                fmt = public_id_com_ext.rsplit('.', 1)[-1] if '.' in public_id_com_ext else ''
+                resource_type = "raw" if fmt == "pdf" else "image"
+                # private_download_url usa endpoint API autenticado — sem restrição CDN
+                dl_url = cloudinary.utils.private_download_url(
+                    public_id,
+                    fmt,
                     resource_type=resource_type,
-                    format=public_id.rsplit('.', 1)[-1] if '.' in public_id else '',
-                    sign_url=True,
-                    type="upload",
                     expires_at=int(time.time()) + 900,
                 )
-                return Redirect(url=signed_url, status_code=302)
+                return Redirect(url=dl_url, status_code=302)
         return Redirect(url=caminho, status_code=302)
 
     # Caminho local do Windows (desktop app sem nuvem configurada) — não acessível no servidor
