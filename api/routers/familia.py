@@ -648,36 +648,24 @@ def servir_anexo(
     caminho = anexo.caminho or ""
     if caminho.startswith("http"):
         if "cloudinary.com" in caminho:
-            # Proxy autenticado: busca o arquivo do Cloudinary e entrega ao usuário
-            import httpx, base64
+            import hashlib, time, urllib.parse
             api_key    = os.getenv("CLOUDINARY_API_KEY", "")
             api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
             cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
-            # Monta URL de download via API autenticada do Cloudinary
             m = re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
-            if m:
+            if m and api_key and api_secret and cloud_name:
                 public_id_com_ext = m.group(1)
                 fmt = public_id_com_ext.rsplit('.', 1)[-1].lower() if '.' in public_id_com_ext else ''
                 resource_type = "raw" if fmt == "pdf" else "image"
                 public_id = re.sub(r'\.[^.]+$', '', public_id_com_ext)
-                api_url = (
-                    f"https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/download"
-                    f"?public_id={public_id}&format={fmt}"
-                )
-                creds = base64.b64encode(f"{api_key}:{api_secret}".encode()).decode()
-                try:
-                    r = httpx.get(api_url, headers={"Authorization": f"Basic {creds}"},
-                                  follow_redirects=True, timeout=30)
-                    if r.status_code == 200:
-                        from fastapi.responses import Response as RawResponse
-                        media = "application/pdf" if fmt == "pdf" else r.headers.get("content-type", "application/octet-stream")
-                        return RawResponse(
-                            content=r.content,
-                            media_type=media,
-                            headers={"Content-Disposition": f'inline; filename="{anexo.nome}"'},
-                        )
-                except Exception:
-                    pass
+                timestamp = int(time.time())
+                # Monta string para assinar (parâmetros em ordem alfabética)
+                params = {"format": fmt, "public_id": public_id, "timestamp": timestamp}
+                to_sign = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+                signature = hashlib.sha256(f"{to_sign}{api_secret}".encode()).hexdigest()
+                qs = urllib.parse.urlencode({**params, "api_key": api_key, "signature": signature})
+                dl_url = f"https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/download?{qs}"
+                return Redirect(url=dl_url, status_code=302)
         return Redirect(url=caminho, status_code=302)
 
     # Caminho local do Windows (desktop app sem nuvem configurada) — não acessível no servidor
