@@ -653,19 +653,27 @@ def servir_anexo(
             cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
             m = re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
             if m and api_key and api_secret and cloud_name:
-                public_id_com_ext = m.group(1)
-                fmt = public_id_com_ext.rsplit('.', 1)[-1].lower() if '.' in public_id_com_ext else ''
-                # public_id sem extensão (download API recebe format separado)
-                public_id = public_id_com_ext[:-(len(fmt)+1)] if fmt else public_id_com_ext
+                public_id = m.group(1)   # inclui extensão: pasta/arquivo.pdf
+                fmt = public_id.rsplit('.', 1)[-1].lower() if '.' in public_id else ''
                 resource_type = "raw" if fmt == "pdf" else "image"
                 timestamp = int(time.time())
-                # Assina com SHA-1, parâmetros em ordem alfabética
-                to_sign = f"format={fmt}&public_id={public_id}&timestamp={timestamp}{api_secret}"
-                signature = hashlib.sha1(to_sign.encode()).hexdigest()
-                pid_enc = urllib.parse.quote(public_id, safe='/')
-                dl_url = (f"https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/download"
-                          f"?public_id={pid_enc}&format={fmt}"
-                          f"&timestamp={timestamp}&api_key={api_key}&signature={signature}")
+                if resource_type == "raw":
+                    # Raw: public_id inclui extensão, sem parâmetro format
+                    to_sign = f"public_id={public_id}&timestamp={timestamp}{api_secret}"
+                    signature = hashlib.sha1(to_sign.encode()).hexdigest()
+                    pid_enc = urllib.parse.quote(public_id, safe='/')
+                    dl_url = (f"https://api.cloudinary.com/v1_1/{cloud_name}/raw/download"
+                              f"?public_id={pid_enc}&timestamp={timestamp}"
+                              f"&api_key={api_key}&signature={signature}")
+                else:
+                    # Image: public_id sem extensão + format separado
+                    pid_no_ext = public_id[:-(len(fmt)+1)] if fmt else public_id
+                    to_sign = f"format={fmt}&public_id={pid_no_ext}&timestamp={timestamp}{api_secret}"
+                    signature = hashlib.sha1(to_sign.encode()).hexdigest()
+                    pid_enc = urllib.parse.quote(pid_no_ext, safe='/')
+                    dl_url = (f"https://api.cloudinary.com/v1_1/{cloud_name}/image/download"
+                              f"?public_id={pid_enc}&format={fmt}&timestamp={timestamp}"
+                              f"&api_key={api_key}&signature={signature}")
                 return RedirectResponse(url=dl_url, status_code=302)
         return RedirectResponse(url=caminho, status_code=302)
 
