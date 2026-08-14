@@ -632,7 +632,6 @@ def servir_anexo(
     session: str = Cookie(default=None),
     db: Session = Depends(get_db),
 ):
-    from fastapi.responses import RedirectResponse as Redirect
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
@@ -667,8 +666,8 @@ def servir_anexo(
                 dl_url = (f"https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/download"
                           f"?public_id={pid_enc}&format={fmt}"
                           f"&timestamp={timestamp}&api_key={api_key}&signature={signature}")
-                return Redirect(url=dl_url, status_code=302)
-        return Redirect(url=caminho, status_code=302)
+                return RedirectResponse(url=dl_url, status_code=302)
+        return RedirectResponse(url=caminho, status_code=302)
 
     # Caminho local do Windows (desktop app sem nuvem configurada) — não acessível no servidor
     import mimetypes
@@ -694,6 +693,7 @@ def servir_anexo(
 
 @router.post("/consulta/{consulta_id}/confirmar", response_class=RedirectResponse)
 def confirmar_consulta(
+    request: Request,
     consulta_id: int,
     session: str = Cookie(default=None),
     db: Session = Depends(get_db),
@@ -728,6 +728,7 @@ def confirmar_consulta(
 
 @router.post("/adesao/{prescricao_id}/registrar", response_class=RedirectResponse)
 def registrar_adesao(
+    request: Request,
     prescricao_id: int,
     session: str = Cookie(default=None),
     nivel: str = Form(...),
