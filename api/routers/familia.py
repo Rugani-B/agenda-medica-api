@@ -659,10 +659,12 @@ def servir_anexo(
                 fmt = public_id.rsplit('.', 1)[-1].lower() if '.' in public_id else ''
                 resource_type = "raw" if fmt == "pdf" else "image"
                 timestamp = int(time.time())
-                params = {"public_id": public_id, "timestamp": timestamp}
-                to_sign = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
-                signature = hashlib.sha256(f"{to_sign}{api_secret}".encode()).hexdigest()
-                qs = urllib.parse.urlencode({**params, "api_key": api_key, "signature": signature})
+                # Cloudinary assina com SHA-1 (padrão) e slashes literais no public_id
+                to_sign = f"public_id={public_id}&timestamp={timestamp}{api_secret}"
+                signature = hashlib.sha1(to_sign.encode()).hexdigest()
+                # Monta query string mantendo slashes literais no public_id
+                qs = (f"public_id={urllib.parse.quote(public_id, safe='/')}"
+                      f"&timestamp={timestamp}&api_key={api_key}&signature={signature}")
                 dl_url = f"https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/download?{qs}"
                 return Redirect(url=dl_url, status_code=302)
         return Redirect(url=caminho, status_code=302)
