@@ -669,7 +669,7 @@ def servir_anexo(
         return Redirect(url=caminho, status_code=302)
 
     # Caminho local do Windows (desktop app sem nuvem configurada) — não acessível no servidor
-    import re, mimetypes
+    import mimetypes
     if re.match(r'^[A-Za-z]:[\\\/]', caminho):
         raise HTTPException(
             status_code=409,
