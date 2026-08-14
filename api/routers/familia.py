@@ -654,13 +654,12 @@ def servir_anexo(
             cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
             m = re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
             if m and api_key and api_secret and cloud_name:
-                public_id_com_ext = m.group(1)
-                fmt = public_id_com_ext.rsplit('.', 1)[-1].lower() if '.' in public_id_com_ext else ''
+                # public_id no Cloudinary inclui a extensão (ex: pasta/arquivo.pdf)
+                public_id = m.group(1)
+                fmt = public_id.rsplit('.', 1)[-1].lower() if '.' in public_id else ''
                 resource_type = "raw" if fmt == "pdf" else "image"
-                public_id = re.sub(r'\.[^.]+$', '', public_id_com_ext)
                 timestamp = int(time.time())
-                # Monta string para assinar (parâmetros em ordem alfabética)
-                params = {"format": fmt, "public_id": public_id, "timestamp": timestamp}
+                params = {"public_id": public_id, "timestamp": timestamp}
                 to_sign = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
                 signature = hashlib.sha256(f"{to_sign}{api_secret}".encode()).hexdigest()
                 qs = urllib.parse.urlencode({**params, "api_key": api_key, "signature": signature})
