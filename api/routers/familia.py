@@ -654,18 +654,19 @@ def servir_anexo(
             cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
             m = re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
             if m and api_key and api_secret and cloud_name:
-                # public_id no Cloudinary inclui a extensão (ex: pasta/arquivo.pdf)
-                public_id = m.group(1)
-                fmt = public_id.rsplit('.', 1)[-1].lower() if '.' in public_id else ''
+                public_id_com_ext = m.group(1)
+                fmt = public_id_com_ext.rsplit('.', 1)[-1].lower() if '.' in public_id_com_ext else ''
+                # public_id sem extensão (download API recebe format separado)
+                public_id = public_id_com_ext[:-(len(fmt)+1)] if fmt else public_id_com_ext
                 resource_type = "raw" if fmt == "pdf" else "image"
                 timestamp = int(time.time())
-                # Cloudinary assina com SHA-1 (padrão) e slashes literais no public_id
-                to_sign = f"public_id={public_id}&timestamp={timestamp}{api_secret}"
+                # Assina com SHA-1, parâmetros em ordem alfabética
+                to_sign = f"format={fmt}&public_id={public_id}&timestamp={timestamp}{api_secret}"
                 signature = hashlib.sha1(to_sign.encode()).hexdigest()
-                # Monta query string mantendo slashes literais no public_id
-                qs = (f"public_id={urllib.parse.quote(public_id, safe='/')}"
-                      f"&timestamp={timestamp}&api_key={api_key}&signature={signature}")
-                dl_url = f"https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/download?{qs}"
+                pid_enc = urllib.parse.quote(public_id, safe='/')
+                dl_url = (f"https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/download"
+                          f"?public_id={pid_enc}&format={fmt}"
+                          f"&timestamp={timestamp}&api_key={api_key}&signature={signature}")
                 return Redirect(url=dl_url, status_code=302)
         return Redirect(url=caminho, status_code=302)
 
