@@ -647,33 +647,21 @@ def servir_anexo(
     caminho = anexo.caminho or ""
     if caminho.startswith("http"):
         if "cloudinary.com" in caminho:
-            import hashlib, time, urllib.parse
             api_key    = os.getenv("CLOUDINARY_API_KEY", "")
             api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
             cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
             m = re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
             if m and api_key and api_secret and cloud_name:
-                public_id = m.group(1)   # inclui extensão: pasta/arquivo.pdf
+                import cloudinary as _cld, cloudinary.utils as _cld_utils
+                _cld.config(cloud_name=cloud_name, api_key=api_key,
+                            api_secret=api_secret, secure=True)
+                public_id = m.group(1)  # inclui extensão: pasta/arquivo.pdf
                 fmt = public_id.rsplit('.', 1)[-1].lower() if '.' in public_id else ''
                 resource_type = "raw" if fmt == "pdf" else "image"
-                timestamp = int(time.time())
-                if resource_type == "raw":
-                    # Raw: public_id inclui extensão, sem parâmetro format
-                    to_sign = f"public_id={public_id}&timestamp={timestamp}{api_secret}"
-                    signature = hashlib.sha1(to_sign.encode()).hexdigest()
-                    pid_enc = urllib.parse.quote(public_id, safe='/')
-                    dl_url = (f"https://api.cloudinary.com/v1_1/{cloud_name}/raw/download"
-                              f"?public_id={pid_enc}&timestamp={timestamp}"
-                              f"&api_key={api_key}&signature={signature}")
-                else:
-                    # Image: public_id sem extensão + format separado
-                    pid_no_ext = public_id[:-(len(fmt)+1)] if fmt else public_id
-                    to_sign = f"format={fmt}&public_id={pid_no_ext}&timestamp={timestamp}{api_secret}"
-                    signature = hashlib.sha1(to_sign.encode()).hexdigest()
-                    pid_enc = urllib.parse.quote(pid_no_ext, safe='/')
-                    dl_url = (f"https://api.cloudinary.com/v1_1/{cloud_name}/image/download"
-                              f"?public_id={pid_enc}&format={fmt}&timestamp={timestamp}"
-                              f"&api_key={api_key}&signature={signature}")
+                # private_download_url com public_id completo (com ext) e format=''
+                dl_url = _cld_utils.private_download_url(
+                    public_id, "", resource_type=resource_type, type="upload"
+                )
                 return RedirectResponse(url=dl_url, status_code=302)
         return RedirectResponse(url=caminho, status_code=302)
 
