@@ -236,6 +236,30 @@ class DialogExame(QDialog):
             return
         anexo = item.data(Qt.ItemDataRole.UserRole)
         caminho = anexo.caminho
+        if caminho and caminho.startswith("http"):
+            import webbrowser, re as _re
+            import cloudinary as _cld, cloudinary.utils as _cld_utils
+            _cld.config(
+                cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+                api_key=os.getenv("CLOUDINARY_API_KEY", ""),
+                api_secret=os.getenv("CLOUDINARY_API_SECRET", ""),
+                secure=True,
+            )
+            from urllib.parse import unquote as _unquote
+            m = _re.search(r'/(?:raw|image)/upload/(?:v\d+/)?(.+)', caminho)
+            if m:
+                public_id = _unquote(m.group(1))
+                fmt = public_id.rsplit('.', 1)[-1].lower() if '.' in public_id else ''
+                resource_type = "raw" if fmt == "pdf" else "image"
+                if resource_type == "image":
+                    pid_dl = public_id.rsplit('.', 1)[0]
+                    url = _cld_utils.private_download_url(pid_dl, fmt, resource_type="image", type="upload")
+                else:
+                    url = _cld_utils.private_download_url(public_id, "", resource_type="raw", type="upload")
+                webbrowser.open(url)
+            else:
+                webbrowser.open(caminho)
+            return
         if not os.path.exists(caminho):
             QMessageBox.warning(self, "Arquivo não encontrado",
                                 f"O arquivo não foi encontrado:\n{caminho}")

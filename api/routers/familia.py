@@ -655,7 +655,8 @@ def servir_anexo(
                 import cloudinary as _cld, cloudinary.utils as _cld_utils
                 _cld.config(cloud_name=cloud_name, api_key=api_key,
                             api_secret=api_secret, secure=True)
-                public_id = m.group(1)  # inclui extensão: pasta/arquivo.pdf
+                from urllib.parse import unquote
+                public_id = unquote(m.group(1))  # decodifica acentos (%C3%82 → Â)
                 fmt = public_id.rsplit('.', 1)[-1].lower() if '.' in public_id else ''
                 resource_type = "raw" if fmt == "pdf" else "image"
                 # PDFs (raw): manter extensão no public_id, format=''.

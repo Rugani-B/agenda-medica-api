@@ -76,11 +76,7 @@ class AnexoExameService:
         # Upload para nuvem → URL pública
         ext = os.path.splitext(nome_arquivo)[1].lower()
         try:
-            if ext == ".pdf":
-                from app.services.supabase_service import upload_pdf
-                url = upload_pdf(caminho_local, paciente_id, nome_arquivo)
-            else:
-                url = upload_anexo(caminho_local, paciente_id, nome_arquivo)
+            url = upload_anexo(caminho_local, paciente_id, nome_arquivo)
         except Exception:
             url = caminho_local
 
