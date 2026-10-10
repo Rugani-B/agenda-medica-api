@@ -658,10 +658,17 @@ def servir_anexo(
                 public_id = m.group(1)  # inclui extensão: pasta/arquivo.pdf
                 fmt = public_id.rsplit('.', 1)[-1].lower() if '.' in public_id else ''
                 resource_type = "raw" if fmt == "pdf" else "image"
-                # private_download_url com public_id completo (com ext) e format=''
-                dl_url = _cld_utils.private_download_url(
-                    public_id, "", resource_type=resource_type, type="upload"
-                )
+                # PDFs (raw): manter extensão no public_id, format=''.
+                # Imagens: retirar extensão do public_id e passar no format.
+                if resource_type == "image":
+                    pid_dl = public_id.rsplit('.', 1)[0]
+                    dl_url = _cld_utils.private_download_url(
+                        pid_dl, fmt, resource_type="image", type="upload"
+                    )
+                else:
+                    dl_url = _cld_utils.private_download_url(
+                        public_id, "", resource_type="raw", type="upload"
+                    )
                 return RedirectResponse(url=dl_url, status_code=302)
         return RedirectResponse(url=caminho, status_code=302)
 
