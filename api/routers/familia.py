@@ -601,9 +601,11 @@ def detalhe_semana_exames(
     seg = dt.strptime(seg_str, "%Y-%m-%d").date()
     dom = seg + timedelta(days=6)
 
+    from datetime import time as _time
+    dom_fim = dt.combine(dom, _time.max)
     exames = db.query(Exame).filter(
         Exame.paciente_id == paciente_id,
-        Exame.data_hora >= seg, Exame.data_hora <= dom,
+        Exame.data_hora >= seg, Exame.data_hora <= dom_fim,
     ).order_by(Exame.data_hora).all()
 
     dados = []
