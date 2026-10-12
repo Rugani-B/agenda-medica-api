@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QDateTimeEdit, QTextEdit, QDialogButtonBox,
     QMessageBox, QPushButton, QHBoxLayout, QToolBar,
     QGroupBox, QListWidget, QListWidgetItem, QFileDialog,
-    QAbstractItemView, QSizePolicy
+    QAbstractItemView, QSizePolicy, QLineEdit
 )
 from PyQt6.QtGui import QFont, QAction, QTextListFormat, QIcon
 from PyQt6.QtCore import QDateTime, Qt
@@ -103,6 +103,10 @@ class DialogExame(QDialog):
         self.input_obs.setPlaceholderText("Observações...")
         self.input_obs.setMaximumHeight(70)
 
+        # ── Link do laboratório ────────────────────────
+        self.input_link = QLineEdit()
+        self.input_link.setPlaceholderText("https://...")
+
         # ── Adicionar campos ao form ───────────────────
         form.addRow("Paciente:", self.combo_paciente)
         form.addRow("Médico:", self.combo_medico)
@@ -111,6 +115,7 @@ class DialogExame(QDialog):
         form.addRow("Data/Hora:", self.input_data_hora)
         form.addRow("Status:", self.combo_status)
         form.addRow("Observações:", self.input_obs)
+        form.addRow("Link do laboratório:", self.input_link)
 
         # ── Resultado ──────────────────────────────────
         resultado_layout = QVBoxLayout()
@@ -373,6 +378,7 @@ class DialogExame(QDialog):
 
         self.input_obs.setText(e.observacoes or "")
         self.input_resultado.setHtml(e.resultado or "")
+        self.input_link.setText(e.link_laboratorio or "")
 
     # ── Salvar ────────────────────────────────────────
     def _salvar(self):
@@ -396,9 +402,10 @@ class DialogExame(QDialog):
             "tipo_exame_id": tipo_exame_id,
             "local_id"     : local_id,
             "data_hora"    : self.input_data_hora.dateTime().toPyDateTime(),
-            "status"       : self.combo_status.currentData(),
-            "observacoes"  : self.input_obs.toPlainText().strip() or None,
-            "resultado"    : self.input_resultado.toHtml().strip() if self.input_resultado.toPlainText().strip() else None,
+            "status"           : self.combo_status.currentData(),
+            "observacoes"      : self.input_obs.toPlainText().strip() or None,
+            "resultado"        : self.input_resultado.toHtml().strip() if self.input_resultado.toPlainText().strip() else None,
+            "link_laboratorio" : self.input_link.text().strip() or None,
                 }
 
         try:

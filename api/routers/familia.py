@@ -621,6 +621,7 @@ def detalhe_semana_exames(
             "medico": e.medico.nome if e.medico else "",
             "status": e.status.value, "observacoes": e.observacoes or "",
             "resultado": _limpar_html(e.resultado), "anexos": anexos,
+            "link_laboratorio": e.link_laboratorio or "",
         })
 
     return _render("modal_semana_exames.html", {

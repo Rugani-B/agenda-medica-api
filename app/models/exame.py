@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, Enum as SAEnum
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, String, Enum as SAEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from enum import Enum
@@ -23,8 +23,9 @@ class Exame(Base):
     medico_id      = Column(Integer, ForeignKey("medicos.id"),      nullable=True)
     data_hora      = Column(DateTime, nullable=False)
     status         = Column(SAEnum(StatusExame), default=StatusExame.agendado)
-    observacoes    = Column(Text, nullable=True)
-    resultado      = Column(Text, nullable=True)
+    observacoes       = Column(Text, nullable=True)
+    resultado         = Column(Text, nullable=True)
+    link_laboratorio  = Column(String(2048), nullable=True)
     criado_em      = Column(DateTime, default=datetime.utcnow)
 
     # Relacionamentos

@@ -39,6 +39,14 @@
   </div>
   {% endif %}
 
+  {% if e.link_laboratorio %}
+  <div class="modal-secao modal-indentado">
+    <a class="modal-link-lab" href="{{ e.link_laboratorio }}" target="_blank" rel="noopener">
+      🔗 Link do Exame
+    </a>
+  </div>
+  {% endif %}
+
   {% if e.anexos %}
   <div class="modal-secao modal-indentado">
     <div class="modal-secao-titulo">📎 Arquivos anexos</div>
