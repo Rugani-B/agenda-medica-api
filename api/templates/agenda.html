@@ -548,7 +548,7 @@ LISTA_T.forEach(p => {
   new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: p.historico.map(h => h.seg.slice(5).replace('-', '/')),
+      labels: p.historico.map(h => { const [,m,d] = h.seg.split('-'); const mes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+m-1]; return `${d}/${mes}`; }),
       datasets: [{
         data: p.historico.map(h => h.pct),
         backgroundColor: p.historico.map(h => h.cor),
