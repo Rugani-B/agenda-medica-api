@@ -727,6 +727,11 @@ def servir_anexo(
                         filename=anexo.nome)
 
 
+def _url_retorno(request: Request) -> str:
+    """Volta para a versão do portal de onde o formulário foi enviado."""
+    return "/familia/v2/" if "/familia/v2" in request.headers.get("referer", "") else "/familia/"
+
+
 @router.post("/consulta/{consulta_id}/confirmar", response_class=RedirectResponse)
 def confirmar_consulta(
     request: Request,
@@ -759,7 +764,7 @@ def confirmar_consulta(
                   ip=_ip(request), user_agent=_ua(request),
                   detalhes={"acao_detalhe": "confirmacao_web"})
     db.commit()
-    return RedirectResponse(url="/familia/", status_code=303)
+    return RedirectResponse(url=_url_retorno(request), status_code=303)
 
 
 @router.post("/adesao/{prescricao_id}/registrar", response_class=RedirectResponse)
@@ -798,7 +803,7 @@ def registrar_adesao(
                   ip=_ip(request), user_agent=_ua(request),
                   detalhes={"nivel": nivel, "semana": str(seg)})
     db.commit()
-    return RedirectResponse(url="/familia/", status_code=303)
+    return RedirectResponse(url=_url_retorno(request), status_code=303)
 
 
 @router.get("/meus-acessos", response_class=HTMLResponse)
