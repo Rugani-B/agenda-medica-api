@@ -490,6 +490,35 @@ def agenda(
     })
 
 
+@router.get("/v2/", response_class=HTMLResponse)
+def agenda_v2(
+    request: Request,
+    session: str = Cookie(default=None),
+    ano: int = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    usuario = _get_usuario(session, db)
+    if not usuario:
+        return _login_redirect()
+    paciente_id = _get_paciente_id(usuario.id, db)
+    if not paciente_id:
+        return _login_redirect()
+
+    paciente = db.query(Paciente).filter_by(id=paciente_id).first()
+    hoje = date.today()
+    ano  = ano or hoje.year
+
+    import time
+    return _render("agenda_v2.html", {
+        "cache_bust":   int(time.time()),
+        "paciente":     paciente,
+        "responsavel":  usuario,
+        "eventos_json": json.dumps(_build_mes_eventos(paciente_id, ano, hoje.month, db), ensure_ascii=False),
+        "anual_json":   json.dumps(_build_ano_calendarios(paciente_id, ano, db), ensure_ascii=False),
+        "ano": ano, "hoje": hoje.isoformat(),
+    })
+
+
 @router.get("/semana/{seg_str}", response_class=HTMLResponse)
 def detalhe_semana(
     seg_str: str,
