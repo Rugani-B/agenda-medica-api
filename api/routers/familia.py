@@ -504,7 +504,7 @@ def acesso_link(
     if not bcrypt.checkpw(senha.encode("utf-8"), resp.senha_hash):
         return _pagina_acesso(responsavel_id, token, "senha")
 
-    r = RedirectResponse(url="/familia/", status_code=303)
+    r = RedirectResponse(url="/familia/v2/", status_code=303)
     r.set_cookie(_COOKIE_NAME, _assinar_resp(resp),
                  httponly=True, secure=True, samesite="lax", max_age=_COOKIE_MAX_AGE)
     return r
@@ -528,7 +528,7 @@ def agenda(
             return _login_redirect()
         atual = _get_responsavel_sessao(session, db)
         if atual and atual.id == responsavel_id:
-            return RedirectResponse(url="/familia/", status_code=303)
+            return RedirectResponse(url="/familia/v2/", status_code=303)
         return _pagina_acesso(responsavel_id, token)
 
     usuario = _get_usuario(session, db)
