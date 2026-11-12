@@ -9,6 +9,9 @@ import os
 import re
 import hmac
 import hashlib
+from types import SimpleNamespace
+
+import bcrypt
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -26,6 +29,8 @@ from app.models.anexo_exame import AnexoExame
 from app.models.usuario import Usuario, PerfilUsuario
 from app.models.usuario_paciente import UsuarioPaciente
 from app.models.consentimento import Consentimento
+from app.models.responsavel import Responsavel
+from api.auth import verificar_token
 
 router = APIRouter(prefix="/familia", tags=["familia"])
 
@@ -64,7 +69,32 @@ def _verificar_sessao(valor: str | None) -> int | None:
 _PERFIS_PORTAL_FAMILIA = {PerfilUsuario.familiar, PerfilUsuario.paciente}
 
 
-def _get_usuario(session: str | None, db: Session) -> Usuario | None:
+def _assinar_resp(resp: Responsavel) -> str:
+    """Sessão de acesso por link + senha. Trocar a senha invalida as sessões antigas."""
+    msg = f"r{resp.id}".encode() + (resp.senha_hash or b"")
+    sig = hmac.new(_SECRET.encode(), msg, hashlib.sha256).hexdigest()[:24]
+    return f"r{resp.id}:{sig}"
+
+
+def _get_responsavel_sessao(session: str | None, db: Session) -> Responsavel | None:
+    if not session or not session.startswith("r"):
+        return None
+    try:
+        rid = int(session.split(":", 1)[0][1:])
+    except ValueError:
+        return None
+    resp = db.query(Responsavel).filter_by(id=rid).first()
+    if not resp or not resp.senha_hash:
+        return None
+    return resp if hmac.compare_digest(session, _assinar_resp(resp)) else None
+
+
+def _get_usuario(session: str | None, db: Session):
+    """Usuário logado por e-mail/senha, ou responsável que entrou por link + senha."""
+    resp = _get_responsavel_sessao(session, db)
+    if resp:
+        # id=None: não há linha em `usuarios`; os logs ficam só com o paciente_id
+        return SimpleNamespace(id=None, nome=resp.nome, paciente_id=resp.paciente_id)
     uid = _verificar_sessao(session)
     if not uid:
         return None
@@ -74,8 +104,10 @@ def _get_usuario(session: str | None, db: Session) -> Usuario | None:
     return u
 
 
-def _get_paciente_id(usuario_id: int, db: Session) -> int | None:
-    v = db.query(UsuarioPaciente).filter_by(usuario_id=usuario_id, status="ativo").first()
+def _get_paciente_id(usuario, db: Session) -> int | None:
+    if isinstance(usuario, SimpleNamespace):
+        return usuario.paciente_id
+    v = db.query(UsuarioPaciente).filter_by(usuario_id=usuario.id, status="ativo").first()
     return v.paciente_id if v else None
 
 
@@ -426,7 +458,7 @@ def login(
     if u.perfil not in _PERFIS_PORTAL_FAMILIA:
         return RedirectResponse(url="/familia/login?erro=acesso", status_code=303)
 
-    paciente_id = _get_paciente_id(u.id, db)
+    paciente_id = _get_paciente_id(u, db)
     if not paciente_id:
         return RedirectResponse(url="/familia/login?erro=sem_paciente", status_code=303)
 
@@ -443,6 +475,41 @@ def logout():
     return resp
 
 
+# ── Acesso por link do responsável + senha ────────────────────────────────────
+
+def _pagina_acesso(responsavel_id: int, token: str, erro: str | None = None):
+    msgs = {
+        "senha": "Senha incorreta.",
+        "sem_senha": "Este link ainda não tem senha definida. Peça ao gestor da agenda.",
+    }
+    return _render("acesso_link.html", {
+        "responsavel_id": responsavel_id, "token": token, "erro": msgs.get(erro),
+    })
+
+
+@router.post("/acesso")
+def acesso_link(
+    responsavel_id: int = Form(...),
+    token: str = Form(...),
+    senha: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    if not verificar_token(token, responsavel_id):
+        return _login_redirect()
+    resp = db.query(Responsavel).filter_by(id=responsavel_id).first()
+    if not resp:
+        return _login_redirect()
+    if not resp.senha_hash:
+        return _pagina_acesso(responsavel_id, token, "sem_senha")
+    if not bcrypt.checkpw(senha.encode("utf-8"), resp.senha_hash):
+        return _pagina_acesso(responsavel_id, token, "senha")
+
+    r = RedirectResponse(url="/familia/", status_code=303)
+    r.set_cookie(_COOKIE_NAME, _assinar_resp(resp),
+                 httponly=True, secure=True, samesite="lax", max_age=_COOKIE_MAX_AGE)
+    return r
+
+
 # ── Rotas principais ──────────────────────────────────────────────────────────
 
 @router.get("/", response_class=HTMLResponse)
@@ -451,13 +518,24 @@ def agenda(
     session: str = Cookie(default=None),
     ano: int = Query(default=None),
     mes: int = Query(default=None),
+    token: str = Query(default=None),
+    responsavel_id: int = Query(default=None),
     db: Session = Depends(get_db),
 ):
+    # Link copiado em "Responsáveis": pede a senha e abre o paciente daquele responsável
+    if token and responsavel_id:
+        if not verificar_token(token, responsavel_id):
+            return _login_redirect()
+        atual = _get_responsavel_sessao(session, db)
+        if atual and atual.id == responsavel_id:
+            return RedirectResponse(url="/familia/", status_code=303)
+        return _pagina_acesso(responsavel_id, token)
+
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
 
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
     if not paciente_id:
         return _login_redirect()
 
@@ -500,7 +578,7 @@ def agenda_v2(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
     if not paciente_id:
         return _login_redirect()
 
@@ -529,7 +607,7 @@ def detalhe_semana(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
 
     seg = dt.strptime(seg_str, "%Y-%m-%d").date()
     dom = seg + timedelta(days=6)
@@ -589,7 +667,7 @@ def detalhe_consulta(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
 
     c = db.query(Consulta).filter_by(id=consulta_id).first()
     if not c or c.paciente_id != paciente_id:
@@ -625,7 +703,7 @@ def detalhe_semana_exames(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
 
     seg = dt.strptime(seg_str, "%Y-%m-%d").date()
     dom = seg + timedelta(days=6)
@@ -667,7 +745,7 @@ def servir_anexo(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
 
     anexo = db.query(AnexoExame).filter_by(id=anexo_id).first()
     if not anexo:
@@ -742,7 +820,7 @@ def confirmar_consulta(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
 
     consulta = db.query(Consulta).filter_by(id=consulta_id).first()
     if not consulta or consulta.paciente_id != paciente_id:
@@ -780,7 +858,7 @@ def registrar_adesao(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
 
     prescricao = db.query(Prescricao).filter_by(id=prescricao_id).first()
     if not prescricao or prescricao.paciente_id != paciente_id:
@@ -815,7 +893,7 @@ def meus_acessos(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
     if not paciente_id:
         return _login_redirect()
 
@@ -897,7 +975,7 @@ def baixar_relatorio(
     usuario = _get_usuario(session, db)
     if not usuario:
         return _login_redirect()
-    paciente_id = _get_paciente_id(usuario.id, db)
+    paciente_id = _get_paciente_id(usuario, db)
 
     paciente = db.query(Paciente).filter_by(id=paciente_id).first()
     if not paciente:

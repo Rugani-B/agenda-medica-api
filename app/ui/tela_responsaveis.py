@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 import hashlib
+import bcrypt
 import os
 from dotenv import load_dotenv
 
@@ -28,6 +29,10 @@ def _gerar_token(responsavel_id: int) -> str:
 def _gerar_link(responsavel_id: int) -> str:
     token = _gerar_token(responsavel_id)
     return f"{BASE_URL}/familia/?token={token}&responsavel_id={responsavel_id}"
+
+
+def _hash_senha(senha: str) -> bytes:
+    return bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt())
 
 
 def _carregar_pacientes(db):
@@ -73,6 +78,12 @@ class DialogResponsavel(QDialog):
         self.email      = QLineEdit()
         self.obs        = QTextEdit()
         self.obs.setFixedHeight(60)
+        self.senha      = QLineEdit()
+        self.senha.setEchoMode(QLineEdit.EchoMode.Password)
+        tem_senha = bool(self.responsavel and getattr(self.responsavel, "tem_senha", False))
+        self.senha.setPlaceholderText(
+            "deixe em branco para manter a atual" if tem_senha else "obrigatória para o link funcionar"
+        )
 
         if self.responsavel:
             self.nome.setText(self.responsavel.nome or "")
@@ -89,6 +100,7 @@ class DialogResponsavel(QDialog):
         layout.addRow("WhatsApp", self.whatsapp)
         layout.addRow("E-mail", self.email)
         layout.addRow("Observações", self.obs)
+        layout.addRow("Senha do link", self.senha)
 
         btns = QHBoxLayout()
         btn_ok = QPushButton("Salvar")
@@ -119,6 +131,7 @@ class DialogResponsavel(QDialog):
             "whatsapp":    self.whatsapp.text().strip(),
             "email":       self.email.text().strip(),
             "observacoes": self.obs.toPlainText().strip(),
+            "senha":       self.senha.text(),
         }
 
 
@@ -201,6 +214,7 @@ class TelaResponsaveis(QWidget):
                     "whatsapp":    r.whatsapp or "",
                     "email":       r.email or "",
                     "observacoes": r.observacoes or "",
+                    "tem_senha":   bool(r.senha_hash),
                 })
             self._dados = dados
         finally:
@@ -248,6 +262,13 @@ class TelaResponsaveis(QWidget):
         self.tabela.resizeRowsToContents()
 
     def _copiar_link(self, responsavel_id: int):
+        d = next((x for x in self._dados if x["id"] == responsavel_id), None)
+        if d and not d["tem_senha"]:
+            QMessageBox.warning(
+                self, "Senha não definida",
+                "Defina a 'Senha do link' deste responsável (botão ✏️) antes de enviar o link."
+            )
+            return
         link = _gerar_link(responsavel_id)
         QApplication.clipboard().setText(link)
         QMessageBox.information(
@@ -262,9 +283,12 @@ class TelaResponsaveis(QWidget):
             return
         if dlg.exec() == QDialog.DialogCode.Accepted:
             dados = dlg.dados()
+            senha = dados.pop("senha")
             db = SessionLocal()
             try:
                 novo = Responsavel(**dados)
+                if senha:
+                    novo.senha_hash = _hash_senha(senha)
                 db.add(novo)
                 db.commit()
             finally:
@@ -286,11 +310,14 @@ class TelaResponsaveis(QWidget):
         dlg = DialogResponsavel(self, responsavel=r)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             dados = dlg.dados()
+            senha = dados.pop("senha")
             db = SessionLocal()
             try:
                 obj = db.query(Responsavel).get(responsavel_id)
                 for k, v in dados.items():
                     setattr(obj, k, v)
+                if senha:
+                    obj.senha_hash = _hash_senha(senha)
                 db.commit()
             finally:
                 db.close()

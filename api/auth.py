@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import os
 from dotenv import load_dotenv
 
@@ -13,4 +14,4 @@ def gerar_token(responsavel_id: int) -> str:
 
 
 def verificar_token(token: str, responsavel_id: int) -> bool:
-    return gerar_token(responsavel_id) == token
+    return hmac.compare_digest(gerar_token(responsavel_id), token)

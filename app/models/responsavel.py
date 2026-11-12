@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, LargeBinary
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -17,6 +17,7 @@ class Responsavel(Base):
     whatsapp        =   Column(String(20))
     email           =   Column(String(100))
     observacoes     =   Column(Text)
+    senha_hash      =   Column(LargeBinary, nullable=True)   # senha do link do portal familiar (bcrypt)
     criado_em       =   Column(DateTime(timezone=True), server_default=func.now())
 
     paciente = relationship("Paciente", back_populates="responsaveis")
