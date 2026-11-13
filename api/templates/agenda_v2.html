@@ -359,11 +359,11 @@ const GRAF_SEMANA_PX = 34, GRAF_BARRA_PX = 20, GRAF_EIXO_PX = 48, GRAF_COR = '#3
 
     return `<div class="lst-trat-card">
       <div class="lst-trat-header">
-        <span class="lst-trat-medico">${p.medico ? 'Dr(a). '+p.medico : 'Médico n/i'}</span>
+        <div class="lst-trat-meds">${meds}</div>
         ${tagAtiva}
         <span class="lst-trat-periodo">${p.periodo}</span>
       </div>
-      <div class="lst-trat-meds">${meds}</div>
+      <div class="lst-trat-medico">${p.medico ? 'Dr(a). '+p.medico : 'Médico n/i'}</div>
       ${grafHtml}
       ${adesaoHtml}
     </div>`;
