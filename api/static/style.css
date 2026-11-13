@@ -497,15 +497,16 @@ body.tema-cinza .relatorio-input { background: #f5f5f5; border-color: #aaa; }
 .lista-status { font-size: 0.68rem; font-weight: 600; text-align: left; text-transform: capitalize; }
 
 /* ── Lista tratamentos ── */
-.lista-view-trat { max-height: 320px; }
+.lista-view-trat { max-height: 320px; background: var(--c-bg); padding: 12px; }
 .lst-trat-card {
   background: white;
   border-left: 3px solid var(--c-trat);
   border-radius: 6px;
   padding: 8px 10px;
-  margin-bottom: 6px;
+  margin-bottom: 14px;
   box-shadow: var(--shadow-sm);
 }
+.lst-trat-card:last-child { margin-bottom: 0; }
 .lst-trat-header {
   display: flex;
   align-items: center;
