@@ -322,9 +322,10 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
     lista_tratamentos = []
     for p in sorted(prescricoes, key=lambda x: x.semana_inicio or date.min, reverse=True):
         if p.semana_inicio and p.semana_fim:
-            if p.semana_inicio <= seg_atual + timedelta(days=6) and seg_atual <= p.semana_fim:
+            # Status pela data de hoje, não pela semana: terminou ontem = encerrada
+            if p.semana_inicio <= hoje <= p.semana_fim:
                 status_trat = "ativa"
-            elif seg_atual + timedelta(days=6) < p.semana_inicio:
+            elif hoje < p.semana_inicio:
                 status_trat = "futura"
             else:
                 status_trat = "encerrada"
