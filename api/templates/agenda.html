@@ -520,9 +520,10 @@ const grafMarcadores = {
         ctx.setLineDash([]);
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(cx - meia, top); ctx.lineTo(cx - meia, bottom);
+        const alto = bottom - 20;                 // bandeirinha baixa, junto à base
+        ctx.moveTo(cx - meia, alto); ctx.lineTo(cx - meia, bottom);
         ctx.stroke();
-        ctx.fillRect(cx - meia, top, 10, 8);      // bandeirinha de término
+        ctx.fillRect(cx - meia, alto, 9, 7);
       }
     });
     ctx.restore();

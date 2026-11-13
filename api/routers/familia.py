@@ -657,7 +657,7 @@ def detalhe_semana(
         dados.append({
             "id": c.id, "data": c.data_hora.strftime("%a %d/%m"),
             "hora": c.data_hora.strftime("%H:%M"),
-            "medico": c.medico.nome if c.medico else "Médico n/i",
+            "medico": _primeiro_ultimo_nome(c.medico.nome) if c.medico else "Médico n/i",
             "especialidade": c.medico.especialidade.nome if c.medico and c.medico.especialidade else "",
             "status": c.status.value, "observacoes": c.observacoes or "",
             "pedidos": pedidos, "prescricoes": prescs,
@@ -705,7 +705,7 @@ def detalhe_consulta(
     dado = {
         "id": c.id, "data": c.data_hora.strftime("%a %d/%m"),
         "hora": c.data_hora.strftime("%H:%M"),
-        "medico": c.medico.nome if c.medico else "Médico n/i",
+        "medico": _primeiro_ultimo_nome(c.medico.nome) if c.medico else "Médico n/i",
         "especialidade": c.medico.especialidade.nome if c.medico and c.medico.especialidade else "",
         "status": c.status.value, "observacoes": c.observacoes or "",
         "pedidos": pedidos, "prescricoes": prescs,

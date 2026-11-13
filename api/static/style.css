@@ -852,6 +852,7 @@ body.tema-cinza .relatorio-input { background: #f5f5f5; border-color: #aaa; }
   color: #555; text-transform: uppercase;
   letter-spacing: 0.04em; margin-bottom: 5px;
 }
+.modal-secao-titulo-sm { font-size: 0.65rem; font-weight: 600; color: #777; }
 .modal-secao-trat {
   background: #fff8f0;
   border-radius: 8px;

@@ -19,7 +19,7 @@
 
   {% if consulta.pedidos %}
   <div class="modal-secao modal-indentado">
-    <div class="modal-secao-titulo">📋 Exames pedidos</div>
+    <div class="modal-secao-titulo modal-secao-titulo-sm">📋 Exames pedidos</div>
     {% for p in consulta.pedidos %}
     <div class="modal-item modal-item-e modal-indentado">
       <span>{{ p.tipo }}</span>
@@ -33,7 +33,7 @@
 
   {% if consulta.prescricoes %}
   <div class="modal-secao modal-indentado">
-    <div class="modal-secao-titulo">💊 Prescrições desta consulta</div>
+    <div class="modal-secao-titulo modal-secao-titulo-sm">💊 Prescrições</div>
     {% for pr in consulta.prescricoes %}
     <div class="modal-presc modal-indentado">
       {% for item in pr.itens %}
