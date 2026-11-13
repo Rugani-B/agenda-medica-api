@@ -299,7 +299,8 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
         {"id": c.id, "seg": _segunda(c.data_hora.date()).isoformat(),
          "data": fmt_data(c.data_hora), "data_ord": c.data_hora.date().isoformat(),
          "especialidade": c.medico.especialidade.nome if c.medico and c.medico.especialidade else "",
-         "medico": c.medico.nome if c.medico else "", "status": c.status.value}
+         "medico": _primeiro_ultimo_nome(c.medico.nome) if c.medico else "",
+         "status": c.status.value}
         for c in consultas
     ], key=lambda x: x["data_ord"], reverse=True)
 
@@ -337,6 +338,17 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
         else:
             status_trat = "encerrada"
         adesao_atual = adesoes_ano.get((p.id, seg_atual))
+
+        # Semanas ainda sem registro, da atual até o fim (só tratamento ativo):
+        # o gráfico mostra até 10 como barras vazias e indica quantas sobram.
+        futuras = []
+        if status_trat == "ativa":
+            registradas = {a.semana for a in p.adesoes}
+            s = seg_atual
+            while s <= p.semana_fim:
+                if s not in registradas:
+                    futuras.append(s.isoformat())
+                s += timedelta(weeks=1)
         meds = [
             f"{i.medicamento.nome} {i.dose or ''}".strip()
             + (f" — {i.frequencia}" if i.frequencia else "")
@@ -355,6 +367,8 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
             "adesao_pct":   NIVEL_PCT.get(adesao_atual, 0) if adesao_atual else 0,
             "seg_atual": seg_atual.isoformat(),
             "historico": historico_adesao.get(p.id, []),
+            "futuras": futuras[:10],
+            "futuras_mais": max(0, len(futuras) - 10),
         })
 
     return {

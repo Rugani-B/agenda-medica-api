@@ -480,6 +480,55 @@ const LISTA_T = ANUAL.lista_tratamentos || [];
 // Mesma largura de barra em todos os tratamentos: a largura do gráfico
 // cresce com o número de semanas (rolagem horizontal se não couber).
 const GRAF_SEMANA_PX = 34, GRAF_BARRA_PX = 20, GRAF_EIXO_PX = 48, GRAF_COR = '#378ADD';
+const GRAF_MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function grafRotulo(seg) { const [,m,d] = seg.split('-'); return `${d}/${GRAF_MESES[+m-1]}`; }
+
+// Colunas do gráfico: semanas registradas, depois semanas que ainda virão
+// (barras vazias) e, por fim, um marcador: "+N" semanas restantes ou fim.
+function grafSlots(p) {
+  const slots = (p.historico || []).map(h => ({ tipo: 'real', rotulo: grafRotulo(h.seg), pct: h.pct }));
+  (p.futuras || []).forEach(seg => slots.push({ tipo: 'futura', rotulo: grafRotulo(seg), pct: null }));
+  if (p.futuras_mais > 0) slots.push({ tipo: 'mais', rotulo: `+${p.futuras_mais} sem.`, pct: null });
+  else if (p.status_trat === 'encerrada' && slots.length) slots.push({ tipo: 'fim', rotulo: 'fim', pct: null });
+  return slots;
+}
+
+// Desenha o que o Chart.js não tem: barra pontilhada, seta e marcador de término.
+const grafMarcadores = {
+  id: 'grafMarcadores',
+  afterDatasetsDraw(chart, _args, opts) {
+    const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+    const meia = GRAF_BARRA_PX / 2;
+    ctx.save();
+    opts.slots.forEach((s, i) => {
+      if (s.tipo === 'real') return;
+      const cx = x.getPixelForValue(i);
+      ctx.strokeStyle = ctx.fillStyle = '#9aa5ad';
+      ctx.lineWidth = 1;
+      if (s.tipo === 'futura') {
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(cx - meia + 0.5, top + 0.5, GRAF_BARRA_PX - 1, bottom - top - 1);
+      } else if (s.tipo === 'mais') {
+        const cy = (top + bottom) / 2;
+        ctx.setLineDash([]);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy); ctx.lineTo(cx + 8, cy);
+        ctx.moveTo(cx + 3, cy - 5); ctx.lineTo(cx + 8, cy); ctx.lineTo(cx + 3, cy + 5);
+        ctx.stroke();
+      } else if (s.tipo === 'fim') {
+        ctx.setLineDash([]);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - meia, top); ctx.lineTo(cx - meia, bottom);
+        ctx.stroke();
+        ctx.fillRect(cx - meia, top, 10, 8);      // bandeirinha de término
+      }
+    });
+    ctx.restore();
+  }
+};
+
 (function buildListaTrat() {
   const el = document.getElementById('lista-tratamentos');
   if (!LISTA_T.length) { el.innerHTML = '<p class="lista-vazia">Nenhuma prescrição encontrada.</p>'; return; }
@@ -526,8 +575,9 @@ const GRAF_SEMANA_PX = 34, GRAF_BARRA_PX = 20, GRAF_EIXO_PX = 48, GRAF_COR = '#3
     }
 
     const canvasId = `graf-trat-${p.id}`;
-    const grafHtml = p.historico && p.historico.length
-      ? `<div class="lst-trat-graf"><div class="lst-trat-graf-inner" style="width:${GRAF_EIXO_PX + p.historico.length * GRAF_SEMANA_PX}px"><canvas id="${canvasId}"></canvas></div></div>`
+    const nSlots = grafSlots(p).length;
+    const grafHtml = nSlots
+      ? `<div class="lst-trat-graf"><div class="lst-trat-graf-inner" style="width:${GRAF_EIXO_PX + nSlots * GRAF_SEMANA_PX}px"><canvas id="${canvasId}"></canvas></div></div>`
       : '';
 
     return `<div class="lst-trat-card">
@@ -545,15 +595,17 @@ const GRAF_SEMANA_PX = 34, GRAF_BARRA_PX = 20, GRAF_EIXO_PX = 48, GRAF_COR = '#3
 
 // Gráficos de adesão por tratamento
 LISTA_T.forEach(p => {
-  if (!p.historico || !p.historico.length) return;
+  const slots = grafSlots(p);
+  if (!slots.length) return;
   const canvas = document.getElementById(`graf-trat-${p.id}`);
   if (!canvas) return;
   new Chart(canvas, {
     type: 'bar',
+    plugins: [grafMarcadores],
     data: {
-      labels: p.historico.map(h => { const [,m,d] = h.seg.split('-'); const mes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+m-1]; return `${d}/${mes}`; }),
+      labels: slots.map(s => s.rotulo),
       datasets: [{
-        data: p.historico.map(h => h.pct),
+        data: slots.map(s => s.pct),
         backgroundColor: GRAF_COR,
         borderRadius: 3,
         borderSkipped: false,
@@ -563,7 +615,7 @@ LISTA_T.forEach(p => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: {
+      plugins: { legend: { display: false }, grafMarcadores: { slots }, tooltip: {
         callbacks: { label: ctx => `Adesão: ${ctx.parsed.y}%` }
       }},
       scales: {
