@@ -19,12 +19,12 @@
   <div class="modal-indentado">
     {% if e.local %}
     <div class="modal-detalhe-linha">
-      {{ e.local }}
+      <span class="modal-rotulo-suave">Local</span> {{ e.local }}
     </div>
     {% endif %}
     {% if e.medico %}
     <div class="modal-detalhe-linha">
-      Dr(a). {{ e.medico }}
+      <span class="modal-rotulo-suave">Médico</span> Dr(a). {{ e.medico }}
     </div>
     {% endif %}
     {% if e.observacoes %}
@@ -49,6 +49,7 @@
 
   {% if e.anexos %}
   <div class="modal-secao modal-indentado">
+    <div class="modal-rotulo-suave modal-rotulo-bloco">Arquivos anexos</div>
     <div class="modal-anexos">
       {% for a in e.anexos %}
       <a class="modal-anexo" href="/familia/anexo/{{ a.id }}" target="_blank" title="Abrir {{ a.nome }}">

@@ -885,3 +885,12 @@ body.tema-cinza .relatorio-input { background: #f5f5f5; border-color: #aaa; }
 .anual-scroll::-webkit-scrollbar-track { background: #f0f2f7; border-radius: 10px; }
 .anual-scroll::-webkit-scrollbar-thumb { background: #a0aac0; border-radius: 10px; }
 .anual-scroll::-webkit-scrollbar-thumb:hover { background: #7080a0; }
+
+/* Rótulos discretos da janela de exames */
+.modal-rotulo-suave {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: #a0a0a0;
+  margin-right: 4px;
+}
+.modal-rotulo-bloco { display: block; margin: 0 0 4px; }
