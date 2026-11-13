@@ -50,9 +50,11 @@
   </div>
   {% endif %}
 
+  {% if consulta.status not in ['realizada', 'cancelada'] %}
   <form method="post" action="/familia/consulta/{{ consulta.id }}/confirmar" style="margin-top:8px">
     <button type="submit" class="btn-acao btn-acao-sm">✔ Confirmar realização</button>
   </form>
+  {% endif %}
 </div>
 
 </div>
