@@ -147,6 +147,12 @@ def _primeiro_ultimo_nome(nome: str) -> str:
     return f"{partes[0]} {partes[-1]}" if len(partes) > 2 else " ".join(partes)
 
 
+def _seg_do_exame(pedido) -> str:
+    """Segunda-feira da semana do exame agendado para o pedido ('' se ainda não há exame)."""
+    ex = pedido.exame
+    return _segunda(ex.data_hora.date()).isoformat() if ex and ex.data_hora else ""
+
+
 def _segunda(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
@@ -646,6 +652,7 @@ def detalhe_semana(
     for c in consultas:
         pedidos = [{"tipo": p.tipo_exame.nome if p.tipo_exame else "Exame",
                     "status": p.status.value, "urgente": p.urgente,
+                    "exame_seg": _seg_do_exame(p),
                     "observacoes": p.observacoes or ""}
                    for p in c.pedidos_exame]
         prescs  = [{"medico": c.medico.nome if c.medico else "",
@@ -695,6 +702,7 @@ def detalhe_consulta(
 
     pedidos = [{"tipo": p.tipo_exame.nome if p.tipo_exame else "Exame",
                 "status": p.status.value, "urgente": p.urgente,
+                "exame_seg": _seg_do_exame(p),
                 "observacoes": p.observacoes or ""}
                for p in c.pedidos_exame]
     prescs  = [{"itens": [f"{i.medicamento.nome} {i.dose or ''}".strip()

@@ -869,6 +869,8 @@ body.tema-cinza .relatorio-input { background: #f5f5f5; border-color: #aaa; }
 .modal-item-t { background: #fff3e0; color: #7a3800; }
 .modal-item-obs { font-size: 0.72rem; color: #888; font-style: italic; }
 .modal-urgente { background: #e74c3c; color: white; font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+.modal-pedido-link { color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.modal-pedido-link:hover { color: #1a5276; }
 .modal-status-pedido { font-size: 0.7rem; color: #888; margin-left: auto; }
 
 .modal-presc { margin-bottom: 8px; }
@@ -895,3 +897,13 @@ body.tema-cinza .relatorio-input { background: #f5f5f5; border-color: #aaa; }
   margin-right: 4px;
 }
 .modal-rotulo-bloco { display: block; margin: 0 0 4px; }
+
+/* Duas janelas abertas: lado a lado em telas largas, sobrepostas nas estreitas */
+.modal-box-2 { z-index: 103; }
+@media (min-width: 1100px) {
+  body.dois-modais #modal-box   { left: 26%; width: min(560px, 46vw); }
+  body.dois-modais #modal-box-2 { left: 74%; width: min(560px, 46vw); }
+}
+@media (max-width: 1099px) {
+  body.dois-modais #modal-box-2 { top: calc(50% + 24px); box-shadow: 0 8px 40px rgba(0,0,0,0.45); }
+}

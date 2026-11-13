@@ -27,7 +27,12 @@
     <div class="modal-secao-titulo modal-secao-titulo-sm">📋 Exames pedidos</div>
     {% for p in c.pedidos %}
     <div class="modal-item modal-item-e modal-indentado">
+      {% if p.exame_seg %}
+      <a class="modal-pedido-link" href="#" title="Abrir o exame"
+         onclick="abrirModal2('/familia/semana-exames/{{ p.exame_seg }}'); return false;">{{ p.tipo }} ›</a>
+      {% else %}
       <span>{{ p.tipo }}</span>
+      {% endif %}
       {% if p.urgente %}<span class="modal-urgente">URGENTE</span>{% endif %}
       <span class="modal-status-pedido">{{ p.status | capitalize }}:</span>
       {% if p.observacoes %}<span class="modal-item-obs">{{ p.observacoes }}</span>{% endif %}
