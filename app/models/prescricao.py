@@ -13,8 +13,8 @@ class Prescricao(Base):
     medico_id   = Column(Integer, ForeignKey("medicos.id",   ondelete="SET NULL"), nullable=True)
     observacoes    = Column(Text,     nullable=True)
     criado_em      = Column(DateTime, default=datetime.utcnow)
-    semana_inicio  = Column(Date,     nullable=True)   # segunda-feira de início do tratamento
-    semana_fim     = Column(Date,     nullable=True)   # segunda-feira da última semana do tratamento
+    semana_inicio  = Column(Date,     nullable=True)   # data de início do tratamento (qualquer dia da semana)
+    semana_fim     = Column(Date,     nullable=True)   # data de fim do tratamento
 
     consulta  = relationship("Consulta",       back_populates="prescricoes")
     paciente  = relationship("Paciente")

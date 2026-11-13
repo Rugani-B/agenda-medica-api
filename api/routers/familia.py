@@ -201,7 +201,7 @@ def _build_mes_eventos(paciente_id: int, ano: int, mes: int, db: Session) -> dic
     for p in prescricoes:
         seg = _segunda(primeiro)
         while seg <= ultimo:
-            if p.semana_inicio <= seg <= p.semana_fim:
+            if p.semana_inicio <= seg + timedelta(days=6) and seg <= p.semana_fim:
                 dom = seg + timedelta(days=6)
                 adesao = adesoes.get(seg)
                 meds = [f"{i.medicamento.nome} {i.dose or ''}".strip() for i in p.itens]
@@ -258,7 +258,7 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
         meds = [i.medicamento.nome for i in p.itens]
         seg  = _segunda(inicio)
         while seg <= fim:
-            if p.semana_inicio <= seg <= p.semana_fim:
+            if p.semana_inicio <= seg + timedelta(days=6) and seg <= p.semana_fim:
                 nivel = adesoes_ano.get((p.id, seg))
                 trat_sem[seg]["prescricoes"].append({
                     "id": p.id, "medicamentos": meds, "nivel": nivel,
@@ -322,9 +322,9 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
     lista_tratamentos = []
     for p in sorted(prescricoes, key=lambda x: x.semana_inicio or date.min, reverse=True):
         if p.semana_inicio and p.semana_fim:
-            if p.semana_inicio <= seg_atual <= p.semana_fim:
+            if p.semana_inicio <= seg_atual + timedelta(days=6) and seg_atual <= p.semana_fim:
                 status_trat = "ativa"
-            elif seg_atual < p.semana_inicio:
+            elif seg_atual + timedelta(days=6) < p.semana_inicio:
                 status_trat = "futura"
             else:
                 status_trat = "encerrada"
@@ -376,7 +376,7 @@ def _resumo_semana(paciente_id: int, db: Session) -> dict:
     ).order_by(Exame.data_hora).all()
     prescricoes = db.query(Prescricao).filter(
         Prescricao.paciente_id == paciente_id,
-        Prescricao.semana_inicio <= seg, Prescricao.semana_fim >= seg,
+        Prescricao.semana_inicio <= dom, Prescricao.semana_fim >= seg,
     ).all()
 
     return {
@@ -619,7 +619,7 @@ def detalhe_semana(
 
     prescricoes_ativas = db.query(Prescricao).filter(
         Prescricao.paciente_id == paciente_id,
-        Prescricao.semana_inicio <= seg, Prescricao.semana_fim >= seg,
+        Prescricao.semana_inicio <= dom, Prescricao.semana_fim >= seg,
     ).all()
 
     dados = []

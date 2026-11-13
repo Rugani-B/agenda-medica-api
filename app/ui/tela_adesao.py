@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QFrame, QScrollArea, QSizePolicy, QGridLayout,
     QLineEdit, QSplitter, QDateEdit
 )
-from PyQt6.QtCore import Qt, QSize, QDate, pyqtSignal, QRect
+from PyQt6.QtCore import Qt, QSize, QDate, pyqtSignal, QRect, QTimer
 from PyQt6.QtGui import QFont, QColor, QPainter, QBrush, QPen, QFontMetrics
 
 from app.database.connection import SessionLocal
@@ -70,7 +70,7 @@ class GraficoAdesao(QWidget):
             semanas = sorted({a.semana for a in adesoes})
         else:
             semanas = []
-            s = ini
+            s = _segunda_feira(ini)      # o período pode começar em qualquer dia da semana
             while s <= fim:
                 semanas.append(s)
                 s += datetime.timedelta(weeks=1)
@@ -141,6 +141,18 @@ class GraficoAdesao(QWidget):
                 p.drawText(lx, H - 4, label)
 
         p.end()
+
+
+_ESTILO_CALENDARIO = """
+QCalendarWidget QWidget#qt_calendar_navigationbar { background:#2980b9; }
+QCalendarWidget QToolButton { color:white; background:transparent; font-weight:bold; padding:2px 6px; }
+QCalendarWidget QToolButton:hover { background:#3498db; border-radius:3px; }
+QCalendarWidget QSpinBox { color:#222; background:white; selection-background-color:#2980b9; }
+QCalendarWidget QMenu { color:#222; background:white; }
+QCalendarWidget QMenu::item:selected { color:white; background:#2980b9; }
+QCalendarWidget QAbstractItemView { color:#222; background:white;
+    selection-background-color:#2980b9; selection-color:white; }
+"""
 
 
 def _segunda_feira(d: datetime.date) -> datetime.date:
@@ -421,8 +433,12 @@ class TelAdesao(QWidget):
     def _widget_periodo(self, p) -> QWidget:
         """Linha com QDateEdit para definir início e fim do tratamento."""
         frame = QFrame()
+        # Seletor por nome: sem ele o estilo vaza para os QDateEdit e para o
+        # calendário popup (mês/ano ficavam brancos sobre fundo claro).
+        frame.setObjectName("framePeriodo")
         frame.setStyleSheet(
-            "background:#f4f6f7; border:0.5px solid #ddd; border-radius:6px;"
+            "QFrame#framePeriodo{background:#f4f6f7; border:0.5px solid #ddd; border-radius:6px;}"
+            "QFrame#framePeriodo QLabel{background:transparent; border:none;}"
         )
         lay = QHBoxLayout(frame)
         lay.setContentsMargins(10, 4, 10, 4)
@@ -439,6 +455,8 @@ class TelAdesao(QWidget):
         self._date_inicio.setDisplayFormat("dd/MM/yyyy")
         self._date_inicio.setFixedHeight(22)
         self._date_inicio.setStyleSheet("font-size:11px;")
+        self._date_inicio.setKeyboardTracking(False)   # só avisa ao terminar de digitar
+        self._date_inicio.calendarWidget().setStyleSheet(_ESTILO_CALENDARIO)
         if p.semana_inicio:
             self._date_inicio.setDate(QDate(p.semana_inicio.year,
                                             p.semana_inicio.month,
@@ -446,7 +464,7 @@ class TelAdesao(QWidget):
         else:
             self._date_inicio.setDate(QDate.currentDate())
         self._date_inicio.dateChanged.connect(
-            lambda d: self._corrigir_segunda(self._date_inicio, d))
+            lambda d: self._ao_mudar_data(self._date_inicio, d))
 
         lbl_fim = QLabel("Fim:")
         lbl_fim.setStyleSheet("font-size:11px; color:#777;")
@@ -455,6 +473,8 @@ class TelAdesao(QWidget):
         self._date_fim.setDisplayFormat("dd/MM/yyyy")
         self._date_fim.setFixedHeight(22)
         self._date_fim.setStyleSheet("font-size:11px;")
+        self._date_fim.setKeyboardTracking(False)   # só avisa ao terminar de digitar
+        self._date_fim.calendarWidget().setStyleSheet(_ESTILO_CALENDARIO)
         if p.semana_fim:
             self._date_fim.setDate(QDate(p.semana_fim.year,
                                          p.semana_fim.month,
@@ -462,7 +482,7 @@ class TelAdesao(QWidget):
         else:
             self._date_fim.setDate(QDate.currentDate().addMonths(1))
         self._date_fim.dateChanged.connect(
-            lambda d: self._corrigir_segunda(self._date_fim, d))
+            lambda d: self._ao_mudar_data(self._date_fim, d))
 
         btn_salvar = QPushButton("💾 Salvar")
         btn_salvar.setFixedHeight(22)
@@ -470,7 +490,7 @@ class TelAdesao(QWidget):
             "QPushButton{background:#2980b9;color:white;border-radius:4px;font-size:10px;padding:0 8px;}"
             "QPushButton:hover{background:#3498db;}"
         )
-        btn_salvar.clicked.connect(self._salvar_periodo)
+        btn_salvar.clicked.connect(lambda: self._salvar_periodo())
 
         lay.addWidget(lbl_ini)
         lay.addWidget(self._date_inicio)
@@ -480,23 +500,26 @@ class TelAdesao(QWidget):
         lay.addStretch()
         return frame
 
-    @staticmethod
-    def _corrigir_segunda(widget: QDateEdit, qdate: QDate):
-        d = qdate.toPyDate()
-        seg = _segunda_feira(d)
-        if seg != d:
-            widget.blockSignals(True)
-            widget.setDate(QDate(seg.year, seg.month, seg.day))
-            widget.blockSignals(False)
+    def _ao_mudar_data(self, widget: QDateEdit, qdate: QDate):
+        """Grava o período assim que a data é escolhida (a data fica como selecionada)."""
+        # Adiado: salvar redesenha o painel e destruiria o QDateEdit no meio do sinal.
+        QTimer.singleShot(0, lambda: self._salvar_periodo(avisar=False))
 
-    def _salvar_periodo(self):
+    def _salvar_periodo(self, avisar: bool = True):
         p = self.prescricao_sel
         if not p:
             return
-        inicio = self._date_inicio.date().toPyDate()
-        fim    = self._date_fim.date().toPyDate()
+        try:
+            inicio = self._date_inicio.date().toPyDate()
+            fim    = self._date_fim.date().toPyDate()
+        except RuntimeError:      # painel já foi redesenhado
+            return
         if fim < inicio:
-            QMessageBox.warning(self, "Atenção", "A data de fim deve ser após o início.")
+            # Na gravação automática fica pendente até a outra data ser ajustada.
+            if avisar:
+                QMessageBox.warning(self, "Atenção", "A data de fim deve ser após o início.")
+            return
+        if (inicio, fim) == (p.semana_inicio, p.semana_fim):
             return
         try:
             self.svc_prescricao.atualizar(p.id, {
@@ -554,7 +577,7 @@ class TelAdesao(QWidget):
                     no_tratamento = (
                         semana_ini is not None and
                         semana_fim is not None and
-                        semana_ini <= seg <= semana_fim
+                        semana_ini <= dom and seg <= semana_fim
                     )
                     a = adesao_map.get(seg)
 

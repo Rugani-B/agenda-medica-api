@@ -87,7 +87,7 @@ def _medicamentos_por_semana(prescricoes, ano: int):
         if not meds:
             continue
         for seg in todas_semanas:
-            if presc.semana_inicio <= seg <= fim:
+            if presc.semana_inicio <= seg + datetime.timedelta(days=6) and seg <= fim:
                 for m in meds:
                     resultado[seg].append((m, presc.id))
                 if seg not in presc_id_topo:
@@ -104,9 +104,9 @@ class CelulaCalendario(QLabel):
         self._dom = dom
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-    def mouseDoubleClickEvent(self, event):
+    def mousePressEvent(self, event):
         self.duplo_clique.emit(self._seg, self._dom)
-        super().mouseDoubleClickEvent(event)
+        super().mousePressEvent(event)
 
 
 class CelulaTratamento(QLabel):
