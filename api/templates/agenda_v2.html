@@ -317,7 +317,7 @@ function grafSlots(p) {
   const slots = (p.historico || []).map(h => ({ tipo: 'real', rotulo: grafRotulo(h.seg), pct: h.pct }));
   (p.futuras || []).forEach(seg => slots.push({ tipo: 'futura', rotulo: grafRotulo(seg), pct: null }));
   if (p.futuras_mais > 0) slots.push({ tipo: 'mais', rotulo: `+${p.futuras_mais} sem.`, pct: null });
-  else if (p.status_trat === 'encerrada' && slots.length) slots.push({ tipo: 'fim', rotulo: 'fim', pct: null });
+  else if (p.status_trat === 'encerrada' && slots.length) slots.push({ tipo: 'fim', rotulo: 'FIM', pct: null });
   return slots;
 }
 
@@ -325,9 +325,15 @@ function grafSlots(p) {
 const grafMarcadores = {
   id: 'grafMarcadores',
   afterDatasetsDraw(chart, _args, opts) {
-    const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+    const { ctx, chartArea: { top, bottom, left, right }, scales: { x, y } } = chart;
     const meia = GRAF_BARRA_PX / 2;
     ctx.save();
+    // Linha de referência dos 100%, tracejada e mais forte que a grade
+    const y100 = Math.round(y.getPixelForValue(100)) + 0.5;
+    ctx.strokeStyle = '#6b7780';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(left, y100); ctx.lineTo(right, y100); ctx.stroke();
     opts.slots.forEach((s, i) => {
       if (s.tipo === 'real') return;
       const cx = x.getPixelForValue(i);
@@ -348,12 +354,10 @@ const grafMarcadores = {
         ctx.setLineDash([]);
         ctx.lineWidth = 2;
         ctx.beginPath();
-        const cy = (top + bottom) / 2;            // ✓ de tratamento concluído
-        ctx.strokeStyle = '#5a9a3a';
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = ctx.lineJoin = 'round';
-        ctx.moveTo(cx - 7, cy); ctx.lineTo(cx - 2, cy + 5); ctx.lineTo(cx + 7, cy - 6);
+        const alto = bottom - 20;                 // bandeirinha baixa, junto à base
+        ctx.moveTo(cx - meia, alto); ctx.lineTo(cx - meia, bottom);
         ctx.stroke();
+        ctx.fillRect(cx - meia, alto, 9, 7);
       }
     });
     ctx.restore();
