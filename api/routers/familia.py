@@ -142,6 +142,11 @@ def _render(name: str, context: dict):
 
 # ── Utilitários de agenda ─────────────────────────────────────────────────────
 
+def _primeiro_ultimo_nome(nome: str) -> str:
+    partes = (nome or "").split()
+    return f"{partes[0]} {partes[-1]}" if len(partes) > 2 else " ".join(partes)
+
+
 def _segunda(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
@@ -339,7 +344,7 @@ def _build_ano_calendarios(paciente_id: int, ano: int, db: Session) -> dict:
         ]
         lista_tratamentos.append({
             "id": p.id,
-            "medico": p.medico.nome if p.medico else "",
+            "medico": _primeiro_ultimo_nome(p.medico.nome) if p.medico else "",
             "periodo": f"{p.semana_inicio.strftime('%d/%m/%Y')} → {p.semana_fim.strftime('%d/%m/%Y')}"
                        if p.semana_inicio and p.semana_fim else "",
             "ativa": status_trat == "ativa",
