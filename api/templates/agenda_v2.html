@@ -203,22 +203,25 @@ function buildAnualTrat(tableId, data) {
         td.dataset.seg = s.seg;
         td.dataset.trat = JSON.stringify(s);
 
-        let html = `<div class="anual-cell-hdr"><strong>Sem. ${s.label_num}</strong> ${s.label_data}</div>`;
+        // Um medicamento por linha (nome até 10 caracteres) + % de adesão; no máximo 6
+        const meds = [];
+        (c.prescricoes || []).forEach(p => (p.medicamentos || []).forEach(nome =>
+          meds.push({ nome, pct: p.nivel ? p.pct + "%" : "–", cor: p.nivel ? p.cor : "#b9a48c" })));
+        const MAX_MEDS = 6;
+        const extra = meds.length - MAX_MEDS;
 
-        if (temDados) {
-          html += `<div class="trat-nmeds">${c.n_meds} medicamento${c.n_meds !== 1 ? 's' : ''}</div>`;
-          const comNivel = c.prescricoes.filter(p => p.nivel);
-          if (comNivel.length > 0) {
-            const pctMedio = Math.round(comNivel.reduce((s,p) => s + p.pct, 0) / comNivel.length);
-            const cor = comNivel[comNivel.length-1].cor;
-            html += `<div class="trat-barra-outer"><div class="trat-barra-inner" style="width:${pctMedio}%;background:${cor}"></div></div>
-                     <div class="trat-nivel-label" style="color:${cor}">Adesão ${pctMedio}%</div>`;
-          } else {
-            html += `<div class="trat-barra-outer"><div class="trat-barra-inner" style="width:0%"></div></div>
-                     <div class="trat-nivel-label" style="color:#ccc">não registrado</div>`;
-          }
-        }
+        let html = `<div class="anual-cell-hdr"><strong>Sem. ${s.label_num}</strong> ${s.label_data}`
+          + (extra > 0 ? `<span class="trat-med-mais">+${extra}</span>` : "") + `</div>`;
 
+        html += meds.slice(0, MAX_MEDS).map(m => {
+          const curto = m.nome.length > 10 ? m.nome.slice(0, 9) + "…" : m.nome;
+          return `<div class="trat-med-linha" title="${m.nome}">
+                    <span class="trat-med-nome">${curto}</span>
+                    <span class="trat-med-pct" style="color:${m.cor}">${m.pct}</span>
+                  </div>`;
+        }).join("");
+
+        td.classList.add("trat-cell-meds");
         td.innerHTML = html;
         if (temDados) {
           td.style.cursor = "pointer";
@@ -226,7 +229,7 @@ function buildAnualTrat(tableId, data) {
           td.addEventListener("click", () => abrirDetalheTrat(s, td));
         }
       } else {
-        td.className = "anual-cell anual-cell-empty";
+        td.className = "anual-cell anual-cell-empty trat-cell-meds";
       }
       tr.appendChild(td);
     });
